@@ -12,7 +12,7 @@ const bacup = Object.values(state.routes).find((r) => r.name.startsWith("Bacup")
 describe("garage (demo data)", () => {
   it("has Joel's two bikes with ride counts, laps and hours", () => {
     expect(joel.raceNumber).toBe("777");
-    expect(bikes.map((b) => `${b.year} ${b.manufacturer} ${b.model}`).sort()).toEqual(["2021 Husqvarna TC 125", "2021 Yamaha YZ250F"]);
+    expect(bikes.map((b) => `${b.year} ${b.manufacturer} ${b.model}`).sort()).toEqual(["2021 Yamaha YZ250F", "2026 Husqvarna TC 125"]);
     const stats = bikeStats(bikes, sessions, lapCounter(Object.values(state.laps)), state.routes);
     expect(stats.reduce((a, s) => a + s.sessions, 0)).toBe(sessions.length);
     for (const s of stats) {
