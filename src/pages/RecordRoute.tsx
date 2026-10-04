@@ -62,7 +62,11 @@ export default function RecordRoute() {
           return next;
         });
       },
-      (_k, msg) => { setError(msg); },
+      (kind, msg) => {
+        setError(msg);
+        // Blocked or unsupported won't fix itself: stop "recording" nothing and let them retry.
+        if (kind === "denied" || kind === "unsupported") { provider.current?.stop(); provider.current = null; setPhase("ready"); }
+      },
     );
   };
 
@@ -125,7 +129,7 @@ export default function RecordRoute() {
           </ul>
         </Card>
       )}
-      {error && <ErrorNote title="GPS problem">{error}</ErrorNote>}
+      {error && <ErrorNote title="GPS problem">{error.replace(/\.?$/, ".")}</ErrorNote>}
       {phase === "recording" && (
         <>
           <div className="flex gap-2">

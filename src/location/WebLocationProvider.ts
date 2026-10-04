@@ -1,4 +1,4 @@
-import type { LocationErrorKind, LocationProvider } from "./LocationProvider";
+import { locationErrorText, type LocationErrorKind, type LocationProvider } from "./LocationProvider";
 import type { GpsPoint } from "@/domain/types";
 
 /**
@@ -14,7 +14,7 @@ export class WebLocationProvider implements LocationProvider {
   isSupported() { return typeof navigator !== "undefined" && "geolocation" in navigator; }
 
   async start(onFix: (p: GpsPoint) => void, onError: (k: LocationErrorKind, m: string) => void) {
-    if (!this.isSupported()) { onError("unsupported", "This device has no location support."); return; }
+    if (!this.isSupported()) { onError("unsupported", locationErrorText("unsupported")); return; }
     this.stop();
     this.watchId = navigator.geolocation.watchPosition(
       (pos) => onFix({
@@ -28,7 +28,7 @@ export class WebLocationProvider implements LocationProvider {
       }),
       (err) => {
         const kind: LocationErrorKind = err.code === 1 ? "denied" : err.code === 3 ? "timeout" : "unavailable";
-        onError(kind, err.message || "Location unavailable");
+        onError(kind, locationErrorText(kind));
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
     );
