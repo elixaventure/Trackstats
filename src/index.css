@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  --color-bg: #0b0d0c;
+  --color-surface: #141816;
+  --color-surface-2: #1d221f;
+  --color-line: #2c332e;
+  --color-ink: #f3f5ef;
+  --color-muted: #a1aaa3;
+  --color-plate: #ffd21f;
+  --color-plate-ink: #111111;
+  --color-faster: #3ddc84;
+  --color-slower: #ff6157;
+  --color-equal: #9fb3c8;
+  --color-warn: #ffb020;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+@layer base {
+  html { background: var(--color-bg); color-scheme: dark; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
+  :focus-visible { outline: 3px solid var(--color-plate); outline-offset: 2px; border-radius: 6px; }
+  button, a, input, select, textarea { touch-action: manipulation; }
+  input, select, textarea { font-size: 16px; } /* stops iOS zooming on focus */
+}
+
+@utility tnum { font-variant-numeric: tabular-nums; }
+@utility safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+@utility safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+.maplibregl-ctrl-attrib { font-size: 10px; }

@@ -1,0 +1,14 @@
+# Deploy the rider app as its own Netlify site with Base directory = rider-app.
+# (The repo-root netlify.toml publishes the static Bacup MX website.)
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# The service worker must never be cached, or phones keep an old app version.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
