@@ -55,7 +55,10 @@ const router = createBrowserRouter([
   },
   // Live ride is full-screen: no navigation chrome to mis-tap with gloves.
   { path: "ride/live", element: s(<LiveRide />) },
-]);
+], {
+  // "/" normally; "/Bacup-mx-track-" when hosted on GitHub Pages.
+  basename: import.meta.env.BASE_URL.replace(/\/$/, "") || "/",
+});
 
 export function App() {
   return <RouterProvider router={router} />;

@@ -30,7 +30,7 @@ export default function SignIn() {
     try {
       const res = mode === "in"
         ? await sb.auth.signInWithPassword({ email, password })
-        : await sb.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+        : await sb.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + import.meta.env.BASE_URL } });
       if (res.error) throw res.error;
       if (!res.data.session) { setInfo("Check your email to confirm your account, then sign in."); return; }
       await switchToAccount(res.data.session.user.id, res.data.session.user.email ?? null);

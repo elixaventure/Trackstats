@@ -53,7 +53,7 @@ export function AppShell() {
     <div className="min-h-dvh md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-line bg-surface p-4 md:flex">
         <Link to="/" className="mb-6 flex items-center gap-2 px-2">
-          <img src="/favicon.svg" alt="" className="size-9" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="size-9" />
           <span className="font-display text-3xl font-black uppercase tracking-wide">{APP_NAME}</span>
         </Link>
         <nav aria-label="Main" className="flex flex-col gap-1">

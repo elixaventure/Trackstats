@@ -154,6 +154,17 @@ supabase/migrations/  Postgres schema + Row Level Security.
 
 ## Deploying
 
+### GitHub Pages (free, simplest for testing)
+`.github/workflows/rider-app-pages.yml` builds, lints and tests the app, then publishes it to **https://elixaventure.github.io/Bacup-mx-track-/** on every push to `main` (or the feature branch) that touches `rider-app/`.
+
+One-time setup:
+1. Repo **Settings → Pages → Source: GitHub Actions**.
+2. If the deploy step is refused because of the branch, go to **Settings → Environments → github-pages → Deployment branches** and add the branch, or merge to `main`.
+
+The build sets `BASE_PATH=/<repo>/` so links, the service worker and the installed-app settings work in that sub-folder. `404.html` is a copy of the app, so deep links work.
+
+### Netlify / Cloudflare Pages
+
 Create a **separate** Netlify site from this repo with **Base directory = `rider-app`**. `rider-app/netlify.toml` builds it, and `public/_redirects` handles client-side routes. The repo-root site (the Bacup MX website) is unaffected.
 
 ## Moving to native (Capacitor)
