@@ -8,6 +8,10 @@ import { store } from "./data/store";
 import { rideEngine } from "./session/engine";
 import { sync } from "./sync/engine";
 
+// GitHub Pages deep-link fallback: 404.html sends /app/some/page here as ?p=/app/some/page.
+const redirected = new URLSearchParams(location.search).get("p");
+if (redirected) history.replaceState(null, "", redirected);
+
 const root = createRoot(document.getElementById("root")!);
 
 async function start() {

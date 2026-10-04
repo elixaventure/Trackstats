@@ -155,13 +155,15 @@ supabase/migrations/  Postgres schema + Row Level Security.
 ## Deploying
 
 ### GitHub Pages (free, simplest for testing)
-`.github/workflows/rider-app-pages.yml` builds, lints and tests the app, then publishes it to **https://elixaventure.github.io/Bacup-mx-track-/** on every push to `main` (or the feature branch) that touches `rider-app/`.
+`.github/workflows/rider-app-pages.yml` publishes the repo as one GitHub Pages site:
+- the Bacup MX website at **https://elixaventure.github.io/Bacup-mx-track-/** (unchanged)
+- the rider app at **https://elixaventure.github.io/Bacup-mx-track-/app/**
 
-One-time setup:
-1. Repo **Settings → Pages → Source: GitHub Actions**.
-2. If the deploy step is refused because of the branch, go to **Settings → Environments → github-pages → Deployment branches** and add the branch, or merge to `main`.
+It lints, tests and builds the app on every push to `main` or the feature branch.
 
-The build sets `BASE_PATH=/<repo>/` so links, the service worker and the installed-app settings work in that sub-folder. `404.html` is a copy of the app, so deep links work.
+One-time setup: repo **Settings → Pages → Source: GitHub Actions**. This replaces "Deploy from a branch"; the website keeps its address because the workflow publishes it too. If the deploy is refused because of the branch, go to **Settings → Environments → github-pages → Deployment branches** and add the branch, or merge to `main`.
+
+The app is built with `BASE_PATH=/<repo>/app/`. Deep links work through a `404.html` redirect that the app reads on load.
 
 ### Netlify / Cloudflare Pages
 
