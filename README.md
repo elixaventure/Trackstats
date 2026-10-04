@@ -156,7 +156,7 @@ supabase/migrations/  Postgres schema + Row Level Security.
 ### GitHub Pages (free)
 `.github/workflows/pages.yml` lints, tests and builds the app on every push to `main`, then publishes it to **https://elixaventure.github.io/Trackstats/**.
 
-One-time setup: **Settings → Pages → Source: GitHub Actions**, then **Actions → Publish to GitHub Pages → Run workflow** (or push any change).
+One-time setup: **Settings → Pages → Source: GitHub Actions**, then **Actions → Publish to GitHub Pages → Run workflow** (or push any change). Until Pages is switched on, the deploy job fails with GitHub's "Pages not enabled" error.
 
 The build sets `BASE_PATH=/<repo>/` so links, the service worker and the installed-app settings work in that sub-folder. `404.html` is a copy of the app, so deep links work.
 

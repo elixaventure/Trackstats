@@ -1,6 +1,7 @@
 # Lints, tests and builds the app, then publishes it to GitHub Pages:
 #   https://elixaventure.github.io/Trackstats/
-# One-time setup: Settings → Pages → Source: "GitHub Actions".
+# One-time setup: Settings → Pages → Source: "GitHub Actions". Until then the
+# deploy job fails with GitHub's "Pages not enabled" error; build and tests still run.
 name: Publish to GitHub Pages
 
 on:
@@ -20,21 +21,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      pages: ${{ steps.pages.outputs.type }}
     steps:
       - uses: actions/checkout@v4
-
-      # Publish only once Pages is set to "GitHub Actions"; until then build and test only.
-      - id: pages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          type=$(gh api "repos/${{ github.repository }}/pages" --jq .build_type 2>/dev/null || echo none)
-          echo "type=$type" >> "$GITHUB_OUTPUT"
-          if [ "$type" != "workflow" ]; then
-            echo "::notice title=Not published yet::Turn on Settings → Pages → Source: 'GitHub Actions', then re-run this workflow. Build and tests still run."
-          fi
 
       - uses: actions/setup-node@v4
         with:
@@ -55,7 +43,6 @@ jobs:
 
   deploy:
     needs: build
-    if: needs.build.outputs.pages == 'workflow'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
