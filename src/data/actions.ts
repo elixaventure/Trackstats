@@ -1,6 +1,9 @@
 import { uuid } from "@/lib/id";
-import type { Bike, Group, GroupMember, RiderProfile, Route, ServiceRecord, ServiceTask, TrackChange, Transponder } from "@/domain/types";
+import type { Bike, GpsPoint, Group, GroupMember, RiderProfile, Route, ServiceRecord, ServiceTask, TrackChange, Transponder } from "@/domain/types";
+import { computeLaps } from "@/domain/laps";
 import { defaultSchedule } from "@/domain/service";
+import { summarise } from "@/domain/stats";
+import { gateEvents } from "@/import/toSession";
 import { getTimingProvider } from "@/timing";
 import type { DbState, Settings } from "./db";
 import { deleteGps } from "./persist";
@@ -140,3 +143,31 @@ export function logServiceRecord(r: Omit<ServiceRecord, "id" | "createdAt">): Se
   return rec;
 }
 export const removeServiceRecord = (id: string) => store.remove("serviceRecords", [id]);
+
+/**
+ * Re-time a GPS ride from its recorded trace with the current lap detection:
+ * replaces its GPS gate crossings and laps, and refreshes the summary. Used when
+ * a ride didn't count laps as expected (or after the detector improves).
+ */
+export function retimeFromGps(sessionId: string, points: GpsPoint[]): number {
+  const st = s();
+  const session = st.sessions[sessionId];
+  const route = session?.routeId ? st.routes[session.routeId] : null;
+  if (!session || !route || points.length < 2) return 0;
+  const fresh = gateEvents(route, points, session.id, session.riderId);
+  const freshIds = new Set(fresh.map((e) => e.id));
+  const stale = Object.values(st.timingEvents).filter((e) => e.sessionId === session.id && e.source === "gps" && !freshIds.has(e.id));
+  store.remove("timingEvents", stale.map((e) => e.id));
+  store.upsert("timingEvents", fresh);
+  const events = Object.values(s().timingEvents).filter((e) => e.sessionId === session.id);
+  const laps = computeLaps(session.id, session.riderId, events, { ...session.timing, pods: [] });
+  const lapIds = new Set(laps.map((l) => l.id));
+  store.remove("laps", Object.values(st.laps).filter((l) => l.sessionId === session.id && !lapIds.has(l.id)).map((l) => l.id));
+  store.upsert("laps", laps);
+  const old = session.summary;
+  const summary = summarise(laps, old?.durationMs ?? ((session.endedAt ?? Date.now()) - session.startedAt), old?.previousPbMs ?? null, {
+    distanceM: old?.distanceM ?? null, topSpeedKph: old?.topSpeedKph ?? null, elevationGainM: old?.elevationGainM ?? null,
+  });
+  store.upsert("sessions", [{ ...session, summary }]);
+  return laps.length;
+}

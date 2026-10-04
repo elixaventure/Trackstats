@@ -1,8 +1,8 @@
 import { store } from "@/data/store";
 import { kvDel, kvGet, kvSet, loadGps, saveGps } from "@/data/persist";
 import { routePb } from "@/data/selectors";
-import { buildGeometry, elevationGain, gpsToLine, polylineLength, topSpeedKph, type RouteGeometry, type Xy } from "@/domain/geo";
-import { gateCrossings, prepareGates, type PreparedGate } from "@/domain/gates";
+import { buildGeometry, elevationGain, gpsToLine, polylineLength, topSpeedKph } from "@/domain/geo";
+import { GateDetector, prepareGates } from "@/domain/gates";
 import { computeLaps, openLapStart } from "@/domain/laps";
 import { summarise } from "@/domain/stats";
 import type { GpsPoint, Lap, PodRole, RideType, Route, Session, TimingConfig, TimingEvent, TrackCondition } from "@/domain/types";
@@ -52,10 +52,7 @@ class RideEngine {
   private sampler = new GpsSampler();
   private points: GpsPoint[] = [];
   private lastFlush = 0;
-  private geom: RouteGeometry | null = null;
-  private gates: PreparedGate[] = [];
-  private prevXy: Xy | null = null;
-  private prevT = 0;
+  private gateDetector: GateDetector | null = null;
   private watchdog: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (l: () => void) => { this.listeners.add(l); return () => { this.listeners.delete(l); }; };
@@ -103,8 +100,9 @@ class RideEngine {
     const route = ride.setup.routeId ? st.routes[ride.setup.routeId] ?? null : null;
     this.points = existingPoints;
     this.sampler.reset();
-    this.prevXy = null;
     this.setupGates(route, ride.setup.timing);
+    // After a reload, catch the detector up on the ride so far; those crossings are already recorded.
+    for (const p of existingPoints) this.gateDetector?.push(p);
     this.snap = { ...this.snap, ride, gps: { ...this.snap.gps, state: "searching", points: existingPoints.length, message: null } };
     this.emit();
 
@@ -135,11 +133,10 @@ class RideEngine {
   }
 
   private setupGates(route: Route | null, timing: TimingConfig) {
-    this.geom = null;
-    this.gates = [];
+    this.gateDetector = null;
     if (!route || timing.mode !== "gps" || route.polyline.length < 2) return;
-    this.geom = buildGeometry(route.polyline);
-    this.gates = prepareGates(this.geom, route.gates);
+    const geom = buildGeometry(route.polyline);
+    this.gateDetector = new GateDetector(geom, prepareGates(geom, route.gates), route.isLoop);
   }
 
   private onPassing(e: PassingEvent) {
@@ -164,15 +161,10 @@ class RideEngine {
   }
 
   private detectGateCrossing(p: GpsPoint) {
-    if (!this.geom || !this.snap.ride || p.accuracyM > 30) return;
-    const xy = this.geom.proj.toXy(p.lat, p.lng);
-    const prev = this.prevXy;
-    const prevT = this.prevT;
-    this.prevXy = xy;
-    this.prevT = p.t;
-    if (!prev || p.t - prevT > 10000) return;
-    for (const c of gateCrossings(this.gates, { xy: prev, t: prevT }, { xy, t: p.t })) {
+    if (!this.gateDetector || !this.snap.ride) return;
+    for (const c of this.gateDetector.push(p)) {
       this.record({ participant: this.snap.ride.participants[0]!, role: c.role, podId: `GPS-${c.role}`, at: c.at, source: "gps", signal: null });
+      navigator.vibrate?.(150); // a buzz at the line, so riders know it counted
     }
   }
 
@@ -219,6 +211,10 @@ class RideEngine {
   async finish(): Promise<string> {
     const ride = this.snap.ride;
     if (!ride) throw new Error("No ride running");
+    // A crossing just before pressing finish hasn't been confirmed yet: count it now.
+    for (const c of this.gateDetector?.finish() ?? []) {
+      this.record({ participant: ride.participants[0]!, role: c.role, podId: `GPS-${c.role}`, at: c.at, source: "gps", signal: null });
+    }
     this.detach();
     await this.flushGps();
     const st = store.getState();

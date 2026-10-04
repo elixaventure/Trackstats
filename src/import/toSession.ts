@@ -1,5 +1,5 @@
 import { buildGeometry, elevationGain, gpsToLine, haversineM, polylineLength, projectOntoRoute, topSpeedKph } from "@/domain/geo";
-import { gateCrossings, prepareGates } from "@/domain/gates";
+import { detectCrossings, prepareGates } from "@/domain/gates";
 import { computeLaps } from "@/domain/laps";
 import { summarise } from "@/domain/stats";
 import type { GpsPoint, Lap, LngLatAlt, Route, Session, TimingEvent, TrackCondition } from "@/domain/types";
@@ -33,19 +33,11 @@ export function matchRoutes(routes: Route[], points: GpsPoint[]): RouteMatch[] {
 /** Timing events from the trace crossing the route's virtual gates. */
 export function gateEvents(route: Route, points: GpsPoint[], sessionId: string, riderId: string): TimingEvent[] {
   const g = buildGeometry(route.polyline);
-  const gates = prepareGates(g, route.gates);
-  const events: TimingEvent[] = [];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1]!, b = points[i]!;
-    if (b.t - a.t > 10000 || a.accuracyM > 30 || b.accuracyM > 30) continue;
-    for (const c of gateCrossings(gates, { xy: g.proj.toXy(a.lat, a.lng), t: a.t }, { xy: g.proj.toXy(b.lat, b.lng), t: b.t })) {
-      events.push({
-        id: stableUuid(`${sessionId}:gate:${events.length}`), sessionId, riderId, transponderId: null, tagCode: null,
-        podId: `GPS-${c.role}`, role: c.role, source: "gps", at: c.at, signalStrength: null,
-      });
-    }
-  }
-  return events;
+  // Same detector as live timing, so imported, live and re-timed rides agree.
+  return detectCrossings(g, prepareGates(g, route.gates), route.isLoop, points).map((c, i) => ({
+    id: stableUuid(`${sessionId}:gate:${i}`), sessionId, riderId, transponderId: null, tagCode: null,
+    podId: `GPS-${c.role}`, role: c.role, source: "gps" as const, at: c.at, signalStrength: null,
+  }));
 }
 
 /**

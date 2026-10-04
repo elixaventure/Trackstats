@@ -228,6 +228,26 @@ async function holdFinish(page) {
       expect(gps.n > 100, `only ${gps.n} GPS points uploaded`);
     });
 
+    await step("laps count riding the other way round from a standing start", async () => {
+      await A.ctx.setGeolocation(at(0));
+      await go(a, `ride?route=${routeId}`);
+      await a.getByRole("button", { name: "Start session" }).click();
+      await a.waitForURL(/ride\/live/);
+      // Sit on the line for a few seconds (GPS wobbles over it), then ride two laps the opposite way.
+      for (let i = 0; i < 5; i++) { await A.ctx.setGeolocation(at(i % 2 ? 3 : perimeter - 3)); await a.waitForTimeout(1000); }
+      const back = async (from, to, speed) => { for (let d = from; d > to; d -= speed) { await A.ctx.setGeolocation(at(((d % perimeter) + perimeter) % perimeter)); await a.waitForTimeout(1000); } };
+      await back(0, -(2 * perimeter + 40), 14);
+      await holdFinish(a);
+      await a.waitForURL(/sessions\//, { timeout: 15000 });
+      await a.getByText("Start line check").waitFor();
+      await a.waitForTimeout(800);
+      await shot(a, "07b-reverse-results");
+      const text = await a.locator("main").innerText();
+      expect(/Reversed/.test(text), "direction not shown as reversed");
+      const n = (text.match(/^L\d+$/gm) ?? []).length;
+      expect(n === 2, `expected 2 laps riding reversed, page shows ${n}`);
+    });
+
     await step("a service logged offline uploads when back online", async () => {
       await A.ctx.setOffline(true);
       await go(a, `garage/${bikeId}`).catch(() => undefined);
@@ -277,7 +297,7 @@ async function holdFinish(page) {
       await b.waitForTimeout(2500);
       await shot(b, "11-phone-b-session");
       const text = await b.locator("main").innerText();
-      expect(/Lap 3|L3/.test(text), "laps not shown on phone B");
+      expect(/^L2$/m.test(text), "laps not shown on phone B");
     });
 
     const C = await phone(browser);

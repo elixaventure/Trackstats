@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, LinkButton } from "@/components/Button";
+import { GpsTimingCheck } from "@/components/analysis/GpsTimingCheck";
 import { Card, SectionTitle } from "@/components/Card";
 import { LapChart } from "@/components/charts/LapChart";
 import { Delta } from "@/components/Delta";
@@ -127,6 +128,10 @@ export default function SessionResults() {
           )}
           {session.importInfo?.videos.length ? <div className="mt-4"><VideoSync videos={session.importInfo.videos} points={gps.points} onPosition={onPosition} /></div> : null}
         </Card>
+      )}
+
+      {route && session.timing.mode === "gps" && !gps.loading && gps.points.length > 1 && (
+        <GpsTimingCheck session={session} route={route} points={gps.points} lapCount={laps.length} canEdit={rider?.ownerUserId === db.user.id} />
       )}
 
       {session.notes && <Card><SectionTitle>Notes</SectionTitle><p className="whitespace-pre-wrap">{session.notes}</p></Card>}
