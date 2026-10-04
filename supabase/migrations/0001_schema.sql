@@ -1,4 +1,4 @@
--- Splitline rider platform: core schema.
+-- TrackStats rider platform: core schema.
 -- Column names are the snake_case of the TypeScript model in src/domain/types.ts;
 -- the sync layer (src/sync/mapping.ts) relies on that one-to-one mapping.
 -- Every id is a UUID generated on the device, so offline-created rows sync with

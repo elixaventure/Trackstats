@@ -7,4 +7,4 @@ export const env = {
 };
 
 export const cloudEnabled = Boolean(env.supabaseUrl && env.supabaseAnonKey);
-export const APP_NAME = "Splitline";
+export const APP_NAME = "TrackStats";

@@ -4,7 +4,7 @@ import type { DbState } from "./db";
 
 // One IndexedDB database for the app. Separate keys keep large GPS traces out of
 // the main state blob, so saving a lap doesn't rewrite megabytes.
-const idb = createStore("splitline", "kv");
+const idb = createStore("trackstats", "kv");
 
 export const loadState = () => get<DbState>("state", idb);
 export const saveState = (s: DbState) => set("state", s, idb);

@@ -19,8 +19,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "Splitline — rider progression",
-        short_name: "Splitline",
+        name: "TrackStats — rider progression",
+        short_name: "TrackStats",
         description: "See exactly how much faster you're getting. Lap timing and progression for motocross and enduro riders.",
         theme_color: "#0b0d0c",
         background_color: "#0b0d0c",

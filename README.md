@@ -1,10 +1,10 @@
-# Splitline: rider progression (working name)
+# TrackStats: rider progression
 
 **See exactly how much faster you're getting.** Lap timing and progression for motocross, enduro, private tracks, practice loops and sprint stages.
 
 It's a mobile-first React PWA (repo: `elixaventure/Trackstats`), structured so the same codebase can be wrapped with Capacitor for iOS and Android later.
 
-> "Splitline" is a placeholder name. Search for `APP_NAME` (`src/config/env.ts`) and the manifest in `vite.config.ts` to change it.
+> The name lives in `APP_NAME` (`src/config/env.ts`) and the web-app manifest in `vite.config.ts`.
 
 ## Run it
 
