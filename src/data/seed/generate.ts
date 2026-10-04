@@ -12,6 +12,7 @@ import { demoPeople } from "./riders";
 import { gaussian, mulberry32 } from "./rng";
 import { demoRoutes, SECTOR_PROFILES } from "./routes";
 import { geometryFor, lapGps, sectorDurations } from "./traces";
+import { demoTrackChanges } from "./trackChanges";
 
 type RouteKey = "bacup" | "woodland" | "sprint";
 interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; cond: TrackCondition; best: number; laps: number; tag: "personal" | "shared1" | "shared2" | null; outlier?: boolean; notes?: string }
@@ -19,7 +20,7 @@ interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; co
 const DAY = 86400000;
 
 /** Bump when the sample data changes; devices still on demo data are refreshed automatically. */
-export const DEMO_VERSION = 4;
+export const DEMO_VERSION = 5;
 
 // Joel's Bacup bests (seconds) tell the product story: 2:16.84 → 2:08.42 in seven weeks.
 const PLANS: Plan[] = [
@@ -60,7 +61,8 @@ function lapTimes(plan: Plan, progress: number, rand: () => number): number[] {
 
 export function generateDemo(userId: string, now = Date.now()): { state: DbState; gps: Record<string, GpsPoint[]> } {
   const people = demoPeople(userId, now);
-  const routes = demoRoutes(userId, now);
+  const trackUserId = stableUuid("user:bacup-mx"); // the track operator's account
+  const routes = demoRoutes(userId, now, trackUserId);
   const riders: Record<string, RiderProfile> = { [people.joel.id]: people.joel, [people.charlie.id]: people.charlie };
   for (const f of people.friends) riders[f.id] = f;
 
@@ -153,6 +155,7 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
       laps: byId(laps),
       timingEvents: byId(events),
       leaderboard: byId(otherRiderEntries(routes, people.friends, now)),
+      trackChanges: byId(demoTrackChanges(routes, trackUserId, people.friends, now)),
       settings: { simulateGps: false, simSpeed: 1, demoMode: true, demoVersion: DEMO_VERSION },
     },
     gps,

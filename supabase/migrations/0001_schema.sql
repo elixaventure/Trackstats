@@ -129,6 +129,24 @@ create table public.route_sectors (
 );
 create index on public.route_sectors (route_id);
 
+-- Track change reports ------------------------------------------------------
+-- "Top jump rebuilt", "fallen tree on the descent": from riders or the track itself.
+create table public.track_changes (
+  id uuid primary key,
+  route_id uuid not null references public.routes (id) on delete cascade,
+  kind text not null check (kind in ('jump', 'corner', 'section', 'layout', 'surface', 'hazard', 'closed', 'other')),
+  title text not null check (length(title) between 1 and 120),
+  details text not null default '' check (length(details) <= 1000),
+  sector_id uuid references public.route_sectors (id) on delete set null,
+  severity text not null check (severity in ('info', 'caution', 'hazard')),
+  affects_times boolean not null default false,
+  reported_by_user_id uuid not null references auth.users (id) on delete cascade,
+  reported_by_name text not null,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+create index on public.track_changes (route_id, created_at desc);
+
 -- Sessions, raw timing events, derived laps, GPS -----------------------------
 create table public.sessions (
   id uuid primary key,

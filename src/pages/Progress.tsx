@@ -12,7 +12,8 @@ import { Stat } from "@/components/Stat";
 import { EmptyState } from "@/components/States";
 import { activeRider, bikeLabel } from "@/data/selectors";
 import { conditionSplit, mean, routeImprovement, sessionsPerMonth } from "@/domain/stats";
-import { formatLap, formatSpan } from "@/domain/time";
+import { formatDate, formatLap, formatSpan } from "@/domain/time";
+import { timeBreaks } from "@/domain/trackChanges";
 import { useDb } from "@/hooks/useDb";
 import { useRiderStats } from "@/hooks/useRiderStats";
 
@@ -79,7 +80,10 @@ export default function Progress() {
         <SectionTitle action={<Link to={`/routes/${selected.route.id}`} className="text-sm font-semibold text-plate">Section analysis →</Link>}>Lap time · {selected.route.name}</SectionTitle>
         <Segmented label="Show" columns={4} value={win} onChange={setWin}
           options={[{ value: "5", label: "Last 5" }, { value: "10", label: "Last 10" }, { value: "20", label: "Last 20" }, { value: "all", label: "All" }]} />
-        <div className="mt-4"><ProgressChart points={windowed} /></div>
+        <div className="mt-4"><ProgressChart points={windowed} breaks={timeBreaks(selected.route.id, Object.values(db.trackChanges)).map((c) => ({ at: c.createdAt, label: c.title }))} /></div>
+        {timeBreaks(selected.route.id, Object.values(db.trackChanges)).map((c) => (
+          <p key={c.id} className="mt-2 text-sm text-warn">Track changed {formatDate(c.createdAt)}: {c.title}. Lap times either side of the dashed line aren't directly comparable.</p>
+        ))}
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <Stat label="PB" value={formatLap(selected.pbMs)} tone="plate" />
           <Stat label="First session" value={formatLap(imp?.firstBestMs ?? selected.series[0]?.best)} />

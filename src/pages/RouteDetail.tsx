@@ -22,6 +22,8 @@ import { CONDITION_LABEL, RIDE_TYPE_LABEL } from "@/domain/types";
 import { useDb } from "@/hooks/useDb";
 import { useGps } from "@/hooks/useGps";
 import { VideoSync } from "@/components/video/VideoSync";
+import { TrackChanges } from "@/components/track/TrackChanges";
+import { changesFor, isCurrent } from "@/domain/trackChanges";
 import type { GpsPoint, Session } from "@/domain/types";
 
 type RefKind = "pb" | "previous" | "selected";
@@ -73,8 +75,15 @@ export default function RouteDetail() {
     return [
       ...route.gates.map((gate, i) => ({ id: `g${i}`, lngLat: pointAtDistance(g, gate.distanceM).lngLat, label: gate.role, color: "#ffd21f" })),
       ...route.sectors.slice(0, -1).map((s) => ({ id: s.id, lngLat: pointAtDistance(g, s.endDistanceM).lngLat, label: s.name, color: "#f3f5ef" })),
+      // Open track reports, placed mid-way through the section they're about.
+      ...changesFor(route.id, Object.values(db.trackChanges)).filter((c) => isCurrent(c) && c.sectorId).map((c) => {
+        const i = route.sectors.findIndex((s) => s.id === c.sectorId);
+        const from = i > 0 ? route.sectors[i - 1]!.endDistanceM : 0;
+        const to = route.sectors[i]?.endDistanceM ?? from;
+        return { id: `c-${c.id}`, lngLat: pointAtDistance(g, (from + to) / 2).lngLat, label: c.title, color: c.severity === "hazard" ? "#ff6157" : "#ffb020" };
+      }),
     ];
-  }, [route]);
+  }, [route, db.trackChanges]);
   const allMarkers = useMemo(() => (riderAt ? [...markers, { id: "rider", lngLat: [riderAt.lng, riderAt.lat] as [number, number], label: "You", color: "#ffffff" }] : markers), [markers, riderAt]);
 
   if (!route) return <EmptyState title="Route not found" action={<LinkButton to="/routes">All routes</LinkButton>} />;
@@ -106,6 +115,8 @@ export default function RouteDetail() {
           <LinkButton to={`/leaderboards?route=${route.id}`}><Icon name="trophy" className="size-5" /> Leaderboard</LinkButton>
         </div>
       )}
+
+      <TrackChanges route={route} />
 
       <RouteMap className="h-72 md:h-[28rem]" lines={lines} markers={allMarkers} />
       {analysis.sections.length > 0 && (

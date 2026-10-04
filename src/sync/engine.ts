@@ -47,6 +47,7 @@ class SyncEngine {
     if (!navigator.onLine) return this.set("offline");
     const { data } = await sb.auth.getSession();
     if (!data.session) return this.set("signed_out");
+    await this.pullTrackChanges().catch(() => undefined); // never blocks pushing
     const ops = outbox.peek();
     if (!ops.length) return this.set("idle");
 
@@ -145,6 +146,20 @@ class SyncEngine {
       r.favourite = false;
     }
     store.update((s) => ({ ...s, ...next }));
+  }
+
+  /**
+   * Other riders' track reports, so "the top jump's been rebuilt" reaches every
+   * phone. Runs on every sync; only open or recent reports are fetched.
+   */
+  private async pullTrackChanges() {
+    const sb = getSupabase();
+    if (!sb) return;
+    const since = new Date(Date.now() - 90 * 86400000).toISOString();
+    const { data, error } = await sb.from("track_changes").select("*").or(`resolved_at.is.null,created_at.gte.${since}`).limit(500);
+    if (error || !data) return;
+    const rows = Object.fromEntries(data.map((r) => { const c = fromRow<{ id: string }>(r); return [c.id, c]; }));
+    store.update((s) => ({ ...s, trackChanges: { ...s.trackChanges, ...rows } as DbState["trackChanges"] }));
   }
 
   /** GPS traces aren't pulled in bulk; fetch one on demand (e.g. for route analysis on a new phone). */

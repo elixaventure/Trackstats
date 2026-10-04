@@ -1,5 +1,5 @@
 import type {
-  Bike, Group, GroupMember, Lap, LeaderboardEntry, RiderProfile, Route, Session, TimingEvent, Transponder,
+  Bike, Group, GroupMember, Lap, LeaderboardEntry, TrackChange, RiderProfile, Route, Session, TimingEvent, Transponder,
   TransponderAssignment, User,
 } from "@/domain/types";
 
@@ -30,6 +30,7 @@ export interface DbState {
   timingEvents: Record<string, TimingEvent>;
   /** Cached rankings from other riders (server-computed when online). */
   leaderboard: Record<string, LeaderboardEntry>;
+  trackChanges: Record<string, TrackChange>;
   settings: Settings;
 }
 

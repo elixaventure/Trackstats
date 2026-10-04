@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/States";
 import { toggleFavourite } from "@/data/actions";
 import { activeRider, routePb, visibleRoutes } from "@/data/selectors";
-import { formatDistance, formatLap } from "@/domain/time";
+import { formatDistance, formatLap, formatRelativeDays } from "@/domain/time";
+import { changesFor, isCurrent } from "@/domain/trackChanges";
 import { RIDE_TYPE_LABEL } from "@/domain/types";
 import { useDb } from "@/hooks/useDb";
 
@@ -29,6 +30,12 @@ export default function Routes() {
                 <div className="min-w-0">
                   <div className="truncate text-lg font-semibold">{r.name}</div>
                   <div className="text-sm text-muted">{RIDE_TYPE_LABEL[r.routeType]} · {formatDistance(r.distanceM)}{r.elevationGainM ? ` · ↑${r.elevationGainM} m` : ""}</div>
+                  {(() => {
+                    const open = changesFor(r.id, Object.values(db.trackChanges)).filter((c) => isCurrent(c));
+                    if (!open.length) return null;
+                    const hazard = open.some((c) => c.severity === "hazard");
+                    return <div className={`mt-1 text-xs font-semibold ${hazard ? "text-slower" : "text-warn"}`}>{hazard ? "⚠ Hazard reported" : "Changed"} {formatRelativeDays(open[0]!.createdAt).toLowerCase()}</div>;
+                  })()}
                   <div className="mt-1 font-mono text-sm tnum">{pb ? <>PB <span className="font-bold text-plate">{formatLap(pb.ms)}</span> · {sessions} rides</> : <span className="text-muted">Not ridden yet</span>}</div>
                 </div>
               </Link>

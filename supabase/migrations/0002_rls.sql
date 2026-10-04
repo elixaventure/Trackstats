@@ -66,6 +66,7 @@ alter table public.transponder_assignments enable row level security;
 alter table public.routes enable row level security;
 alter table public.route_points enable row level security;
 alter table public.route_sectors enable row level security;
+alter table public.track_changes enable row level security;
 alter table public.sessions enable row level security;
 alter table public.timing_events enable row level security;
 alter table public.laps enable row level security;
@@ -136,6 +137,23 @@ create policy "route sectors read" on public.route_sectors for select using (
 create policy "route sectors write" on public.route_sectors for all using (
   exists (select 1 from routes r where r.id = route_id and r.created_by_user_id = auth.uid())
 ) with check (exists (select 1 from routes r where r.id = route_id and r.created_by_user_id = auth.uid()));
+
+-- Track change reports: visible to anyone who can see the route. Anyone signed in
+-- can report on a route they can see; reporters and the route's owner can edit,
+-- mark cleared or remove a report.
+create policy "track changes read" on public.track_changes for select using (
+  exists (select 1 from routes r where r.id = route_id and (r.visibility = 'public' or r.created_by_user_id = auth.uid()))
+);
+create policy "track changes report" on public.track_changes for insert with check (
+  reported_by_user_id = auth.uid()
+  and exists (select 1 from routes r where r.id = route_id and (r.visibility = 'public' or r.created_by_user_id = auth.uid()))
+);
+create policy "track changes manage" on public.track_changes for update using (
+  reported_by_user_id = auth.uid() or exists (select 1 from routes r where r.id = route_id and r.created_by_user_id = auth.uid())
+);
+create policy "track changes remove" on public.track_changes for delete using (
+  reported_by_user_id = auth.uid() or exists (select 1 from routes r where r.id = route_id and r.created_by_user_id = auth.uid())
+);
 
 -- Sessions and everything recorded in them
 create policy "sessions read" on public.sessions for select using (public.can_view_rider(rider_id));

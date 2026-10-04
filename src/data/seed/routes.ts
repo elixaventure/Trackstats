@@ -63,9 +63,10 @@ export const SECTOR_PROFILES = {
   sprint: { difficulty: [0.9, 1.1, 1.2], gain: [0.04, 0.05, 0.06] },
 } as const;
 
-export function demoRoutes(ownerId: string, now: number) {
+/** Bacup and the woodland loop belong to the track (Bacup MX); the hill sprint is the rider's own. */
+export function demoRoutes(ownerId: string, now: number, trackOwnerId = ownerId) {
   const created = now - 60 * 86400000;
-  const bacup = makeRoute("bacup", ownerId, {
+  const bacup = makeRoute("bacup", trackOwnerId, {
     name: "Bacup MX Main Track", routeType: "mx_circuit", isLoop: true, visibility: "public",
     polyline: loop({
       lat: 53.7068, lng: -2.1861, rx: 190, ry: 115, n: 160,
@@ -75,7 +76,7 @@ export function demoRoutes(ownerId: string, now: number) {
     configVersion: 1, location: "Bacup, Lancashire", createdAt: created, favourite: true,
   }, ["Start straight", "Quarry hairpin", "Rollers", "Top jump", "Back straight", "Tyre berm → finish"], [0.12, 0.27, 0.45, 0.62, 0.82, 1]);
 
-  const woodland = makeRoute("woodland", ownerId, {
+  const woodland = makeRoute("woodland", trackOwnerId, {
     name: "Woodland Enduro Loop", routeType: "enduro_loop", isLoop: true, visibility: "public",
     polyline: loop({
       lat: 53.7112, lng: -2.1712, rx: 720, ry: 430, n: 360,

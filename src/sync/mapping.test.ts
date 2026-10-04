@@ -16,7 +16,7 @@ function columns(table: string): Set<string> {
 
 describe("sync mapping matches the SQL schema", () => {
   const { state, gps } = generateDemo("user-1", Date.UTC(2026, 9, 4));
-  const pushed: EntityTable[] = ["riders", "bikes", "groups", "groupMembers", "transponders", "assignments", "routes", "sessions", "timingEvents", "laps"];
+  const pushed: EntityTable[] = ["riders", "bikes", "groups", "groupMembers", "transponders", "assignments", "routes", "trackChanges", "sessions", "timingEvents", "laps"];
   for (const table of pushed) {
     it(`${table} → ${TABLES[table]}`, () => {
       const row = Object.values(state[table] as Record<string, object>)[0]!;

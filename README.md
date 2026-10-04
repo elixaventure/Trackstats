@@ -58,6 +58,18 @@ How the colouring works (`lapDelta` in `src/domain/routeAnalysis.ts`):
 
 So 10–18 fixes/s GoPro data resolves individual corners, while 1 fix/s watch data only shows bigger losses over longer stretches. The UI says which applies.
 
+### Track updates ("report a change")
+
+Each track has **Track updates**: riders and the track itself post what's changed, for example a rebuilt jump, a new section, ruts, a hazard or a closed section. Each report has a section, a severity and an optional "affects lap times" flag.
+
+- Start Ride shows a heads-up for anything reported since your last ride there, plus any open hazard or closure.
+- The Routes list badges changed tracks.
+- Reports appear as markers on the track map.
+- "Affects lap times" changes are drawn on progress charts.
+- Reports from the track's owner carry a **Track official** badge.
+- Hazards stay up until someone marks them cleared; other reports drop off after 30 days.
+- With accounts on, reports sync to every rider (`track_changes` table; RLS: anyone can read reports on routes they can see; reporters and the route owner can clear or delete).
+
 ### Trying the timing without hardware
 
 1. Start a ride with **One pod: start/finish**.

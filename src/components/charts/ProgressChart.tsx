@@ -1,4 +1,4 @@
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ProgressPoint } from "@/domain/stats";
 import { formatDate, formatLap } from "@/domain/time";
 import { chart, tooltipStyle } from "./theme";
@@ -7,7 +7,8 @@ import { chart, tooltipStyle } from "./theme";
  * Lap time over sessions. Y axis is inverted so "up" means faster, which is how
  * riders read improvement.
  */
-export function ProgressChart({ points, showAverage = true, height = 240 }: { points: ProgressPoint[]; showAverage?: boolean; height?: number }) {
+/** `breaks`: track changes that affect lap times, drawn as dashed lines on the date they were reported. */
+export function ProgressChart({ points, showAverage = true, height = 240, breaks = [] }: { points: ProgressPoint[]; showAverage?: boolean; height?: number; breaks?: { at: number; label: string }[] }) {
   if (points.length < 2) return <p className="py-8 text-center text-muted">Ride this route twice to see a progression line.</p>;
   const data = points.map((p) => ({ at: p.at, best: p.best / 1000, pb: p.pbSoFar / 1000, avg: p.average != null ? p.average / 1000 : null }));
   const vals = data.flatMap((d) => [d.best, d.pb, ...(showAverage && d.avg != null ? [d.avg] : [])]);
@@ -24,6 +25,9 @@ export function ProgressChart({ points, showAverage = true, height = 240 }: { po
           <Tooltip {...tooltipStyle} labelFormatter={(v) => formatDate(Number(v))}
             formatter={(v, name) => [formatLap(Number(v) * 1000), name]} />
           <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: chart.axis }} />
+          {breaks.filter((b) => b.at >= data[0]!.at && b.at <= data[data.length - 1]!.at + 86400000 * 30).map((b) => (
+            <ReferenceLine key={b.at} x={b.at} stroke="#ffb020" strokeDasharray="4 3" />
+          ))}
           {showAverage && <Line isAnimationActive={false} name="Average lap" dataKey="avg" stroke={chart.context} strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls />}
           <Line isAnimationActive={false} name="Session best" dataKey="best" stroke={chart.context} strokeWidth={0} dot={{ r: 4, fill: chart.context, stroke: chart.surface, strokeWidth: 2 }} activeDot={{ r: 6 }} />
           <Line isAnimationActive={false} name="Personal best" dataKey="pb" type="stepAfter" stroke={chart.pb} strokeWidth={2.5} dot={false} activeDot={{ r: 6, fill: chart.pb, stroke: chart.surface, strokeWidth: 2 }} />

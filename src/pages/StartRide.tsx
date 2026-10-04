@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, LinkButton } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Icon } from "@/components/Icon";
+import { HeadsUp } from "@/components/track/HeadsUp";
 import { SelectField, TextArea } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
@@ -110,6 +111,7 @@ export default function StartRide() {
           {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </SelectField>
       )}
+      {route && <HeadsUp db={db} routeId={route.id} riderId={rider.id} />}
       {rideType !== "free_ride" && (
         <Link to="/routes/new" className="-mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-plate"><Icon name="routes" className="size-5" /> Track not listed? Map it with your phone</Link>
       )}

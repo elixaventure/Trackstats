@@ -223,6 +223,39 @@ export interface GpsPoint {
   altitudeM: number | null;
 }
 
+export type TrackChangeKind = "jump" | "corner" | "section" | "layout" | "surface" | "hazard" | "closed" | "other";
+
+/** A rider's or the track's report that something on a track has changed. */
+export interface TrackChange {
+  id: Uuid;
+  routeId: Uuid;
+  kind: TrackChangeKind;
+  /** Short headline, e.g. "Top jump rebuilt as a step-up". */
+  title: string;
+  details: string;
+  /** Named section of the route it's in, or null for the whole track. */
+  sectorId: Uuid | null;
+  severity: "info" | "caution" | "hazard";
+  /** True when lap times before and after aren't really comparable (new section, different layout). */
+  affectsTimes: boolean;
+  reportedByUserId: Uuid;
+  reportedByName: string;
+  createdAt: EpochMs;
+  /** Set when a hazard or closure has been cleared. */
+  resolvedAt: EpochMs | null;
+}
+
+export const TRACK_CHANGE_LABEL: Record<TrackChangeKind, string> = {
+  jump: "Jump changed",
+  corner: "Corner / berm changed",
+  section: "Section added or removed",
+  layout: "Layout changed",
+  surface: "Ruts / surface",
+  hazard: "Hazard",
+  closed: "Section closed",
+  other: "Other",
+};
+
 export interface Achievement {
   key: string;
   title: string;

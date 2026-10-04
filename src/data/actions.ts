@@ -1,5 +1,5 @@
 import { uuid } from "@/lib/id";
-import type { Bike, Group, GroupMember, RiderProfile, Route, Transponder } from "@/domain/types";
+import type { Bike, Group, GroupMember, RiderProfile, Route, TrackChange, Transponder } from "@/domain/types";
 import { getTimingProvider } from "@/timing";
 import type { DbState, Settings } from "./db";
 import { deleteGps } from "./persist";
@@ -98,4 +98,26 @@ export async function deleteSession(sessionId: string) {
   store.remove("timingEvents", Object.values(st.timingEvents).filter((e) => e.sessionId === sessionId).map((e) => e.id));
   store.remove("sessions", [sessionId]);
   await deleteGps(sessionId);
+}
+
+export function reportTrackChange(input: Pick<TrackChange, "routeId" | "kind" | "title" | "details" | "sectorId" | "severity" | "affectsTimes">): TrackChange {
+  const st = s();
+  const rider = st.riders[st.activeRiderId];
+  // Reports from the track's owner are badged "Track official" when shown (see isOfficial).
+  const name = rider?.name || st.user.email || "Rider";
+  const c: TrackChange = { id: uuid(), ...input, reportedByUserId: st.user.id, reportedByName: name, createdAt: Date.now(), resolvedAt: null };
+  store.upsert("trackChanges", [c]);
+  return c;
+}
+
+export function setTrackChangeResolved(id: string, resolved: boolean) {
+  const c = s().trackChanges[id];
+  if (c) store.upsert("trackChanges", [{ ...c, resolvedAt: resolved ? Date.now() : null }]);
+}
+
+export const removeTrackChange = (id: string) => store.remove("trackChanges", [id]);
+
+/** Can the current user edit/clear this report? Its reporter, or the track's owner. */
+export function canManageChange(st: DbState, c: TrackChange) {
+  return c.reportedByUserId === st.user.id || st.routes[c.routeId]?.createdByUserId === st.user.id;
 }
