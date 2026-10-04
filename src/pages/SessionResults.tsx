@@ -54,6 +54,14 @@ export default function SessionResults() {
   const source = laps[0]?.source;
   const score = consistencyScore(laps);
   const best = s?.fastestLapMs ?? null;
+  // Lap-by-lap comparison on the track map: each lap against the fastest (the fastest against the next best).
+  const ranked = laps.filter((l) => l.valid).sort((a, b) => a.durationMs - b.durationMs);
+  const compareHref = route && session.hasGps && laps.length > 1 && ranked.length > 0
+    ? (n: number) => {
+      const vs = ranked[0]!.lapNumber === n ? ranked[1]?.lapNumber ?? laps.find((l) => l.lapNumber !== n)!.lapNumber : ranked[0]!.lapNumber;
+      return `/routes/${route.id}?session=${session.id}&lap=${n}&vs=${vs}`;
+    }
+    : null;
 
   return (
     <div className="space-y-5">
@@ -103,16 +111,27 @@ export default function SessionResults() {
         <SectionTitle>Laps</SectionTitle>
         <LapChart laps={laps} pbMs={s?.previousPbMs ?? null} />
         {source && <p className="mt-2 text-sm text-muted">{SOURCE_NOTE[source]} Excluded laps (crashes, stops) don't count towards PBs or averages.</p>}
+        {compareHref && <p className="mt-2 text-sm text-muted">Tap a lap to see on the map where it was faster or slower than your best lap.</p>}
         <ol className="mt-3 divide-y divide-line">
-          {laps.map((l) => (
-            <li key={l.id} className="flex min-h-12 items-center gap-3 py-1 font-mono tnum">
-              <span className="w-10 text-muted">L{l.lapNumber}</span>
-              <span className={`text-lg font-bold ${l.durationMs === best ? "text-plate" : l.valid ? "" : "text-muted line-through"}`}>{formatLap(l.durationMs)}</span>
-              {best != null && l.valid && l.durationMs !== best && <span className="text-sm text-muted">+{((l.durationMs - best) / 1000).toFixed(2)}</span>}
-              {!l.valid && <span className="text-xs uppercase text-muted">excluded</span>}
-              {l.splitsMs.length > 0 && <span className="ml-auto hidden text-sm text-muted sm:inline">{l.splitsMs.map((x) => formatLap(x)).join(" · ")}</span>}
-            </li>
-          ))}
+          {laps.map((l) => {
+            const row = (
+              <>
+                <span className="w-10 text-muted">L{l.lapNumber}</span>
+                <span className={`text-lg font-bold ${l.durationMs === best ? "text-plate" : l.valid ? "" : "text-muted line-through"}`}>{formatLap(l.durationMs)}</span>
+                {best != null && l.valid && l.durationMs !== best && <span className="text-sm text-muted">+{((l.durationMs - best) / 1000).toFixed(2)}</span>}
+                {!l.valid && <span className="text-xs uppercase text-muted">excluded</span>}
+                {l.splitsMs.length > 0 && <span className="ml-auto hidden text-sm text-muted sm:inline">{l.splitsMs.map((x) => formatLap(x)).join(" · ")}</span>}
+              </>
+            );
+            const href = compareHref?.(l.lapNumber);
+            return (
+              <li key={l.id} className="font-mono tnum">
+                {href
+                  ? <Link to={href} aria-label={`Compare lap ${l.lapNumber} on the map`} className="flex min-h-12 items-center gap-3 py-1 hover:bg-surface-2">{row}<span className="ml-auto text-plate" aria-hidden="true">›</span></Link>
+                  : <div className="flex min-h-12 items-center gap-3 py-1">{row}</div>}
+              </li>
+            );
+          })}
         </ol>
       </Card>
 

@@ -13,15 +13,31 @@ export interface Analysis {
   refLap: Lap | null;
 }
 
-/** Fastest GPS-covered lap of each session, compared section by section and continuously. */
-export function useSectionAnalysis(route: Route | null, cur: { laps: Lap[]; points: GpsPoint[] }, ref: { laps: Lap[]; points: GpsPoint[] } | null): Analysis {
+/** Laps of a ride that have enough GPS to analyse, in lap order. */
+export function gpsLaps(laps: Lap[], points: GpsPoint[]): Lap[] {
+  return laps.filter((l) => lapHasGps(points, l)).sort((a, b) => a.lapNumber - b.lapNumber);
+}
+
+/**
+ * Compare two laps section by section and continuously. By default the fastest
+ * GPS-covered lap of each ride; pass lap ids to pick particular laps, including
+ * two laps of the same ride.
+ */
+export function useSectionAnalysis(
+  route: Route | null,
+  cur: { laps: Lap[]; points: GpsPoint[] },
+  ref: { laps: Lap[]; points: GpsPoint[] } | null,
+  pick: { curLapId?: string | null; refLapId?: string | null } = {},
+): Analysis {
+  const { curLapId, refLapId } = pick;
   return useMemo(() => {
     if (!route || !cur.points.length) return { sections: [], delta: null, curLap: null, refLap: null };
-    const curLap = bestGpsLap(cur.laps, cur.points);
-    const refLap = ref && ref.points.length ? bestGpsLap(ref.laps, ref.points) : null;
+    const curLap = (curLapId && cur.laps.find((l) => l.id === curLapId && lapHasGps(cur.points, l))) || bestGpsLap(cur.laps, cur.points);
+    const refLap = !ref || !ref.points.length ? null
+      : (refLapId && refLapId !== curLap?.id && ref.laps.find((l) => l.id === refLapId && lapHasGps(ref.points, l))) || bestGpsLap(ref.laps.filter((l) => l.id !== curLap?.id), ref.points);
     if (!curLap) return { sections: [], delta: null, curLap: null, refLap };
     const a = { points: cur.points, lap: curLap };
     const b = refLap && ref ? { points: ref.points, lap: refLap } : null;
     return { sections: compareLaps(route, a, b), delta: b ? lapDelta(route, a, b) : null, curLap, refLap };
-  }, [route, cur.laps, cur.points, ref]);
+  }, [route, cur.laps, cur.points, ref, curLapId, refLapId]);
 }

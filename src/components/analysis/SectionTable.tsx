@@ -5,7 +5,7 @@ import { formatLap } from "@/domain/time";
 export const VERDICT_COLOR: Record<Verdict, string> = { faster: "#3ddc84", equal: "#9fb3c8", slower: "#ff6157", unknown: "#4a524c" };
 const VERDICT_TEXT: Record<Verdict, string> = { faster: "faster", equal: "about equal", slower: "slower", unknown: "not enough GPS" };
 
-export function SectionTable({ sections, refLabel }: { sections: SectionResult[]; refLabel: string }) {
+export function SectionTable({ sections, refLabel, curLabel = "This ride" }: { sections: SectionResult[]; refLabel: string; curLabel?: string }) {
   return (
     <ol className="divide-y divide-line">
       {sections.map((s, i) => (
@@ -14,7 +14,7 @@ export function SectionTable({ sections, refLabel }: { sections: SectionResult[]
           <div className="min-w-0 flex-1">
             <div className="truncate font-semibold">{s.name}</div>
             <div className="font-mono text-sm text-muted tnum">
-              This ride {formatLap(s.timeMs)} · {refLabel} {formatLap(s.refMs)}
+              {curLabel} {formatLap(s.timeMs)} · {refLabel} {formatLap(s.refMs)}
             </div>
           </div>
           <div className="text-right">

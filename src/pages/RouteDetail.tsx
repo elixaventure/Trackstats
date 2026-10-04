@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { BiggestChanges } from "@/components/analysis/BiggestChanges";
 import { DeltaChart } from "@/components/analysis/DeltaChart";
 import { SectionTable, VERDICT_COLOR } from "@/components/analysis/SectionTable";
-import { useSectionAnalysis } from "@/components/analysis/useSectionAnalysis";
+import { gpsLaps, useSectionAnalysis } from "@/components/analysis/useSectionAnalysis";
 import { Button, LinkButton } from "@/components/Button";
 import { Card, SectionTitle } from "@/components/Card";
 import { Delta } from "@/components/Delta";
@@ -26,7 +26,7 @@ import { TrackChanges } from "@/components/track/TrackChanges";
 import { changesFor, isCurrent } from "@/domain/trackChanges";
 import type { GpsPoint, Session } from "@/domain/types";
 
-type RefKind = "pb" | "previous" | "selected";
+type RefKind = "lap" | "pb" | "previous" | "selected";
 
 export default function RouteDetail() {
   const { id = "" } = useParams();
@@ -34,7 +34,8 @@ export default function RouteDetail() {
   const db = useDb();
   const rider = activeRider(db)!;
   const route = db.routes[id] ?? null;
-  const [refKind, setRefKind] = useState<RefKind>("pb");
+  // ?vs=<lap number> opens straight on a lap-against-lap comparison within the ride.
+  const [refKind, setRefKind] = useState<RefKind>(() => (params.get("vs") ? "lap" : "pb"));
   const [selectedRefId, setSelectedRefId] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(route?.name ?? "");
@@ -45,19 +46,29 @@ export default function RouteDetail() {
   const curId = params.get("session") && rides.some((r) => r.id === params.get("session")) ? params.get("session")! : rides[0]?.id ?? null;
   const cur = rides.find((r) => r.id === curId) ?? null;
   const others = rides.filter((r) => r.id !== curId && r.hasGps);
+  // With only one ride here, comparing laps within it is the only comparison there is.
+  const kind: RefKind = refKind !== "lap" && !others.length ? "lap" : refKind;
   const refSession =
-    refKind === "pb" ? [...others].sort((a, b) => a.summary!.fastestLapMs! - b.summary!.fastestLapMs!)[0] ?? null
-    : refKind === "previous" ? others.find((r) => cur && r.startedAt < cur.startedAt) ?? null
+    kind === "lap" ? cur
+    : kind === "pb" ? [...others].sort((a, b) => a.summary!.fastestLapMs! - b.summary!.fastestLapMs!)[0] ?? null
+    : kind === "previous" ? others.find((r) => cur && r.startedAt < cur.startedAt) ?? null
     : others.find((r) => r.id === selectedRefId) ?? null;
-  const curHoldsPb = cur && refSession && refKind === "pb" && cur.summary!.fastestLapMs! < refSession.summary!.fastestLapMs!;
+  const curHoldsPb = cur && refSession && kind === "pb" && cur.summary!.fastestLapMs! < refSession.summary!.fastestLapMs!;
 
   const curGps = useGps(cur?.hasGps ? cur.id : null);
-  const refGps = useGps(refSession?.id ?? null);
+  const refGps = useGps(refSession && refSession.id !== cur?.id ? refSession.id : null);
   const curLaps = useMemo(() => (cur ? sessionLaps(db, cur.id) : []), [db, cur]);
   const refLaps = useMemo(() => (refSession ? sessionLaps(db, refSession.id) : []), [db, refSession]);
   const curData = useMemo(() => ({ laps: curLaps, points: curGps.points }), [curLaps, curGps.points]);
-  const refData = useMemo(() => (refSession ? { laps: refLaps, points: refGps.points } : null), [refSession, refLaps, refGps.points]);
-  const analysis = useSectionAnalysis(route, curData, refData);
+  const refData = useMemo(() => (!refSession ? null : kind === "lap" ? curData : { laps: refLaps, points: refGps.points }), [refSession, kind, curData, refLaps, refGps.points]);
+  const pickable = useMemo(() => gpsLaps(curLaps, curGps.points), [curLaps, curGps.points]);
+  const lapNo = (key: string) => { const n = Number(params.get(key)); return pickable.find((l) => l.lapNumber === n)?.id ?? null; };
+  const analysis = useSectionAnalysis(route, curData, refData, { curLapId: lapNo("lap"), refLapId: kind === "lap" ? lapNo("vs") : null });
+  const setLapParam = (key: "lap" | "vs", n: number) => {
+    const next = new URLSearchParams(params);
+    next.set(key, String(n));
+    setParams(next, { replace: true });
+  };
 
   const lines = useMemo<MapLine[]>(() => {
     if (!route) return [];
@@ -90,7 +101,10 @@ export default function RouteDetail() {
   const mine = route.createdByUserId === db.user.id;
   const gained = analysis.sections.filter((s) => s.verdict === "faster").reduce((a, s) => a + (s.deltaMs ?? 0), 0);
   const lost = analysis.sections.filter((s) => s.verdict === "slower").reduce((a, s) => a + (s.deltaMs ?? 0), 0);
-  const refLabel = refKind === "pb" ? (curHoldsPb ? "Next best" : "PB") : refKind === "previous" ? "Previous" : "Selected";
+  const refLabel = kind === "lap" ? (analysis.refLap ? `Lap ${analysis.refLap.lapNumber}` : "Other lap") : kind === "pb" ? (curHoldsPb ? "Next best" : "PB") : kind === "previous" ? "Previous" : "Selected";
+  const fastestId = [...pickable].filter((l) => l.valid).sort((a, b) => a.durationMs - b.durationMs)[0]?.id;
+  const lapOption = (l: { id: string; lapNumber: number; durationMs: number; valid: boolean }) =>
+    `Lap ${l.lapNumber} · ${formatLap(l.durationMs)}${l.id === fastestId ? " · fastest" : ""}${l.valid ? "" : " · excluded"}`;
 
   return (
     <div className="space-y-5">
@@ -135,9 +149,20 @@ export default function RouteDetail() {
           <SelectField label="Analyse ride" value={curId ?? ""} onChange={(e) => setParams({ session: e.target.value }, { replace: true })}>
             {rides.map((r) => <option key={r.id} value={r.id}>{formatDate(r.startedAt)} · {formatLap(r.summary!.fastestLapMs)} · {CONDITION_LABEL[r.condition]}</option>)}
           </SelectField>
-          <Segmented label="Compare against" columns={3} value={refKind} onChange={setRefKind}
-            options={[{ value: "pb", label: "Personal best" }, { value: "previous", label: "Previous ride" }, { value: "selected", label: "Choose ride" }]} />
-          {refKind === "selected" && (
+          {pickable.length > 0 && (
+            <SelectField label="Lap" value={analysis.curLap?.lapNumber ?? ""} onChange={(e) => setLapParam("lap", Number(e.target.value))}>
+              {pickable.map((l) => <option key={l.id} value={l.lapNumber}>{lapOption(l)}</option>)}
+            </SelectField>
+          )}
+          <Segmented label="Compare against" columns={2} value={kind} onChange={setRefKind}
+            options={[{ value: "lap", label: "Another lap this ride" }, { value: "pb", label: "Personal best" }, { value: "previous", label: "Previous ride" }, { value: "selected", label: "Choose ride" }]} />
+          {kind === "lap" && pickable.length > 1 && (
+            <SelectField label="Against lap" value={analysis.refLap?.lapNumber ?? ""} onChange={(e) => setLapParam("vs", Number(e.target.value))}>
+              {pickable.filter((l) => l.id !== analysis.curLap?.id).map((l) => <option key={l.id} value={l.lapNumber}>{lapOption(l)}</option>)}
+            </SelectField>
+          )}
+          {kind !== "lap" && !others.length && <p className="text-sm text-muted">Ride this track again to compare with another ride. For now you can compare laps within this one.</p>}
+          {kind === "selected" && (
             <SelectField label="Reference ride" value={selectedRefId} onChange={(e) => setSelectedRefId(e.target.value)}>
               <option value="">Choose…</option>
               {others.map((r) => <option key={r.id} value={r.id}>{formatDate(r.startedAt)} · {formatLap(r.summary!.fastestLapMs)}</option>)}
@@ -146,13 +171,14 @@ export default function RouteDetail() {
           {curHoldsPb && <p className="text-sm text-plate">This ride holds your PB, so it's compared with your next-best ride.</p>}
 
           {!cur?.hasGps ? <p className="text-muted">This ride has no GPS trace, so sections can't be compared.</p>
-            : !refSession ? <p className="text-muted">{refKind === "previous" ? "No earlier ride with GPS to compare with." : refKind === "selected" ? "Pick a ride to compare with." : "Ride this route again to compare."}</p>
-            : curGps.loading || refGps.loading ? <div className="h-40 animate-pulse rounded-xl bg-surface-2" />
+            : !refSession ? <p className="text-muted">{kind === "previous" ? "No earlier ride with GPS to compare with." : kind === "selected" ? "Pick a ride to compare with." : "Ride this route again to compare."}</p>
+            : curGps.loading || (kind !== "lap" && refGps.loading) ? <div className="h-40 animate-pulse rounded-xl bg-surface-2" />
             : !analysis.curLap ? <p className="text-muted">Not enough GPS coverage on this ride's laps to analyse sections.</p>
+            : kind === "lap" && !analysis.refLap ? <p className="text-muted">This ride has one complete lap. Ride two or more laps to compare them.</p>
             : (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Stat label="Lap compared" value={formatLap(analysis.curLap.durationMs)} sub={`vs ${formatLap(analysis.refLap?.durationMs)}`} />
+                  <Stat label={`Lap ${analysis.curLap.lapNumber}`} value={formatLap(analysis.curLap.durationMs)} sub={`vs ${refLabel} ${formatLap(analysis.refLap?.durationMs)}`} />
                   <Stat label="Gained" value={gained ? <Delta ms={gained} unit={false} /> : "—"} />
                   <Stat label="Lost" value={lost ? <Delta ms={lost} unit={false} /> : "—"} />
                 </div>
@@ -163,7 +189,7 @@ export default function RouteDetail() {
                   </>
                 )}
                 <h3 className="pt-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-muted">By section</h3>
-                <SectionTable sections={analysis.sections} refLabel={refLabel} />
+                <SectionTable sections={analysis.sections} refLabel={refLabel} curLabel={kind === "lap" ? `Lap ${analysis.curLap.lapNumber}` : undefined} />
               </>
             )}
           <p className="rounded-xl bg-surface-2 p-3 text-sm text-muted">

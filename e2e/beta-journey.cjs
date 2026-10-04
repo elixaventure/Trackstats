@@ -228,6 +228,20 @@ async function holdFinish(page) {
       expect(gps.n > 100, `only ${gps.n} GPS points uploaded`);
     });
 
+    await step("tap a lap to compare it with the fastest lap on the track map", async () => {
+      await go(a, "sessions");
+      await a.getByText("Test Oval").first().click();
+      await a.waitForURL(/sessions\//);
+      await a.getByRole("link", { name: "Compare lap 3 on the map" }).click();
+      await a.waitForURL(/routes\/.*lap=3/);
+      await a.getByText("Where you gained and lost time").waitFor();
+      await a.getByLabel("Against lap").waitFor();
+      const text = await a.locator("main").innerText();
+      expect(/vs Lap 2/.test(text), "not comparing lap 3 with lap 2 (the fastest)");
+      expect(/By section/i.test(text), "no section comparison shown");
+      await shot(a, "07c-lap-vs-lap");
+    });
+
     await step("laps count riding the other way round from a standing start", async () => {
       await A.ctx.setGeolocation(at(0));
       await go(a, `ride?route=${routeId}`);
