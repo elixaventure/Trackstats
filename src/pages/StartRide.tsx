@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, LinkButton } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { Icon } from "@/components/Icon";
 import { SelectField, TextArea } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
@@ -31,16 +32,20 @@ export default function StartRide() {
   const ride = useRide();
   const navigate = useNavigate();
   const rider = activeRider(db)!;
-  const [rideType, setRideType] = useState<RideType>("mx_circuit");
+  // ?route=<id> (e.g. straight after mapping a track) preselects that track.
+  const [params] = useSearchParams();
+  const preset = db.routes[params.get("route") ?? ""] ?? null;
+  const [rideType, setRideType] = useState<RideType>(preset?.routeType ?? "mx_circuit");
   const loop = isLoopType(rideType);
   const routes = useMemo(() => visibleRoutes(db).filter((r) => (rideType === "free_ride" ? false : r.isLoop === loop)), [db, rideType, loop]);
-  const [routeId, setRouteId] = useState<string>(() => routes[0]?.id ?? "");
+  const [routeId, setRouteId] = useState<string>(() => preset?.id ?? routes[0]?.id ?? "");
   const route = routes.find((r) => r.id === routeId) ?? null;
-  const [mode, setMode] = useState<TimingMode>("lap");
+  const tags = availableTags(db, rider.id);
+  // Phone only (no timing tag, or just mapped a track): time laps with GPS.
+  const [mode, setMode] = useState<TimingMode>(() => (preset || !tags.length ? "gps" : "lap"));
   const [sectors, setSectors] = useState(2);
   const bikes = riderBikes(db, rider.id);
   const [bikeId, setBikeId] = useState(rider.defaultBikeId ?? bikes[0]?.id ?? "");
-  const tags = availableTags(db, rider.id);
   const [tagId, setTagId] = useState(() => tags.find((t) => activeAssignment(db, t.id)?.riderId === rider.id)?.id ?? tags[0]?.id ?? "");
   const [condition, setCondition] = useState<TrackCondition>("dry");
   const [notes, setNotes] = useState("");
@@ -68,7 +73,7 @@ export default function StartRide() {
   const pickType = (t: RideType) => {
     setRideType(t);
     const l = isLoopType(t);
-    setMode(t === "free_ride" ? "gps" : l ? "lap" : "start_finish");
+    setMode(t === "free_ride" || !tags.length ? "gps" : l ? "lap" : "start_finish");
     setRouteId(visibleRoutes(db).find((r) => r.isLoop === l)?.id ?? "");
   };
 
@@ -104,6 +109,9 @@ export default function StartRide() {
           <option value="">No route (unsaved)</option>
           {routes.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </SelectField>
+      )}
+      {rideType !== "free_ride" && (
+        <Link to="/routes/new" className="-mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-plate"><Icon name="routes" className="size-5" /> Track not listed? Map it with your phone</Link>
       )}
 
       {rideType !== "free_ride" && <Segmented label="Timing" value={mode} onChange={setMode} options={modeOptions} />}

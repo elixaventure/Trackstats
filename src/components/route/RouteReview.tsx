@@ -44,7 +44,7 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
   ];
 
   const save = () => {
-    if (!name.trim()) return setError("Give the route a name.");
+    if (!name.trim()) return setError("Give the track a name.");
     const valid = sectors.map((s) => ({ ...s, rel: rel(s.atM) })).filter((s) => s.rel > 10 && s.rel < finalLength - 10).sort((a, b) => a.rel - b.rel);
     const gates: TimingGate[] = loop
       ? [{ role: "start_finish", distanceM: 0, halfWidthM: 20 }]
@@ -70,8 +70,8 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
       ]} markers={markers} />
       <p className="text-sm text-muted">Recorded {formatDistance(g.length)}{gap < 40 ? " · ends near where it started (looks like a loop)" : ` · ends ${Math.round(gap)} m from the start`}.</p>
 
-      <TextField label="Route name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Woodland Enduro Loop" />
-      <Segmented label="Route type" value={type} onChange={setType}
+      <TextField label="Track name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Woodland Enduro Loop" />
+      <Segmented label="Track type" value={type} onChange={setType}
         options={(["mx_circuit", "enduro_loop", "point_to_point", "sprint"] as RideType[]).map((t) => ({ value: t, label: RIDE_TYPE_LABEL[t] }))} />
       {loop && gap >= 40 && <p className="text-sm text-warn">This recording doesn't return to its start ({Math.round(gap)} m apart). The loop will be closed with a straight line.</p>}
 
@@ -83,7 +83,7 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
 
       <Card className="space-y-3">
         <SectionTitle>Sectors (optional)</SectionTitle>
-        <p className="text-sm text-muted">Split the route into named sections, e.g. “Woodland Section”, for sector times and section analysis.</p>
+        <p className="text-sm text-muted">Split the track into named sections, e.g. “Woodland Section”, for sector times and section analysis.</p>
         <Slider label="Sector split at" value={sectorAt} max={g.length} onChange={setSectorAt} />
         <Button onClick={() => setSectors([...sectors, { id: uuid(), name: `Sector ${sectors.length + 1}`, atM: sectorAt }])}>Add split here</Button>
         {sectors.map((s, i) => (
@@ -94,10 +94,10 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
         ))}
       </Card>
 
-      <Toggle label="Public route" description="Others can ride it and appear on its leaderboard. Your own laps stay private unless your profile is public." checked={isPublic} onChange={setIsPublic} />
+      <Toggle label="Public track" description="Others can ride it and appear on its leaderboard. Your own laps stay private unless your profile is public." checked={isPublic} onChange={setIsPublic} />
       {error && <p role="alert" className="text-slower">{error}</p>}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button variant="primary" size="lg" className="flex-1" onClick={save}>Save route</Button>
+        <Button variant="primary" size="lg" className="flex-1" onClick={save}>Save track</Button>
         <Button variant="danger" size="lg" onClick={onDiscard}>Discard recording</Button>
       </div>
     </div>

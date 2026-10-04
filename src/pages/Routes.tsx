@@ -16,8 +16,8 @@ export default function Routes() {
   const routes = visibleRoutes(db);
   return (
     <div className="space-y-4">
-      <PageHeader title="Routes" action={<LinkButton to="/routes/new" variant="primary"><Icon name="plus" /> Map new route</LinkButton>} />
-      {!routes.length && <EmptyState icon="routes" title="No routes yet" action={<LinkButton to="/routes/new" variant="primary">Map a route</LinkButton>}>Record a lap of your track or loop with the phone's GPS, then time every ride on it.</EmptyState>}
+      <PageHeader title="Routes" action={<LinkButton to="/routes/new" variant="primary"><Icon name="plus" /> Map a track</LinkButton>} />
+      {!routes.length && <EmptyState icon="routes" title="No tracks yet" action={<LinkButton to="/routes/new" variant="primary">Map a track</LinkButton>}>Ride one lap with your phone and it maps the track, then times every ride on it.</EmptyState>}
       <div className="grid gap-3 md:grid-cols-2">
         {routes.map((r) => {
           const pb = routePb(db, rider.id, r);

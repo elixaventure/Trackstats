@@ -48,13 +48,12 @@ export default function Home() {
         </Card>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
-        <LinkButton to="/ride" variant="primary" size="xl" className="w-full">
-          <Icon name="ride" className="size-8" /> Start ride
-        </LinkButton>
-        <LinkButton to="/import" size="xl" className="w-full">
-          <Icon name="download" className="size-7" /> Import GoPro / watch
-        </LinkButton>
+      <LinkButton to="/ride" variant="primary" size="xl" className="w-full">
+        <Icon name="ride" className="size-8" /> Start ride
+      </LinkButton>
+      <div className="grid grid-cols-2 gap-3">
+        <LinkButton to="/routes/new" size="lg" className="w-full"><Icon name="routes" /> Map a track</LinkButton>
+        <LinkButton to="/import" size="lg" className="w-full"><Icon name="download" /> Import GoPro / watch</LinkButton>
       </div>
 
       {main ? (

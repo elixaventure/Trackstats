@@ -200,3 +200,25 @@ export function rotateLoop(g: RouteGeometry, startM: number): LngLatAlt[] {
   if (startM <= 0.5 || startM >= g.length - 0.5) return g.line.slice();
   return [...subLine(g, startM, g.length), ...subLine(g, 0, startM).slice(1)];
 }
+
+/**
+ * While mapping a track: has the rider come back to where they started?
+ * True once they've covered at least `minLapM` and are within `radiusM` of the
+ * first fix. Fixes worse than 30 m are ignored so a GPS jump can't end the lap.
+ */
+export function lapClosed(points: GpsPoint[], minLapM = 300, radiusM = 25): boolean {
+  const good = points.filter((p) => p.accuracyM <= 30);
+  if (good.length < 10) return false;
+  const start = good[0]!;
+  let dist = 0;
+  for (let i = 1; i < good.length; i++) dist += haversineM(good[i - 1]!.lat, good[i - 1]!.lng, good[i]!.lat, good[i]!.lng);
+  if (dist < minLapM) return false;
+  // Closest approach of the latest stretch to the start point, not just the latest
+  // fix: at speed, one-a-second fixes can be 20–30 m apart and straddle the start.
+  const proj = makeProjector(start.lat, start.lng);
+  const a = good[good.length - 2]!, b = good[good.length - 1]!;
+  const pa = proj.toXy(a.lat, a.lng), pb = proj.toXy(b.lat, b.lng);
+  const vx = pb.x - pa.x, vy = pb.y - pa.y;
+  const t = Math.max(0, Math.min(1, -(pa.x * vx + pa.y * vy) / (vx * vx + vy * vy || 1)));
+  return Math.hypot(pa.x + vx * t, pa.y + vy * t) <= radiusM;
+}
