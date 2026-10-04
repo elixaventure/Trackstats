@@ -28,6 +28,7 @@ const PATHS = {
   edit: "M4 20h4L19 9l-4-4L4 16zM14 6l4 4",
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
   download: "M12 3v12M7 10l5 5 5-5M5 21h14",
+  cart: "M3 4h2l2.4 11h10.8L20 7H6.2M9.5 20h.01M17 20h.01",
   battery: "M3 8h15v8H3zM21 11v2",
   alert: "M12 3 2 20h20zM12 9v5M12 17h.01",
   megaphone: "M3 10v4h4l6 4V6L7 10zM16 9a4 4 0 0 1 0 6",

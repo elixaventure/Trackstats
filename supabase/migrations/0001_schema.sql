@@ -44,7 +44,10 @@ create table public.bikes (
   nickname text,
   image_path text,
   archived boolean not null default false,
-  start_hours numeric                   -- hours already on the bike when added
+  start_hours numeric,                  -- hours already on the bike when added
+  vin text check (length(vin) <= 20),   -- chassis number, optional
+  parts jsonb,                          -- { slot: { brand, product } } the rider uses
+  mods jsonb                            -- [{ id, name, fittedOn, notes }]
 );
 create index on public.bikes (rider_id);
 
@@ -71,7 +74,8 @@ create table public.service_records (
   notes text not null default '',
   cost_pence int check (cost_pence >= 0),
   done_by text not null default '',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  parts_used jsonb                      -- { slot: { brand, product } } fitted in this service
 );
 create index on public.service_records (bike_id, performed_at desc);
 

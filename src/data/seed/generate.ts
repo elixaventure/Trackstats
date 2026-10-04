@@ -21,7 +21,7 @@ interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; co
 const DAY = 86400000;
 
 /** Bump when the sample data changes; devices still on demo data are refreshed automatically. */
-export const DEMO_VERSION = 6;
+export const DEMO_VERSION = 7;
 
 // Joel's Bacup bests (seconds) tell the product story: 2:16.84 → 2:08.42 in seven weeks.
 const PLANS: Plan[] = [

@@ -1,3 +1,4 @@
+import { isTwoStroke } from "./parts";
 import type { Bike, ServiceRecord, ServiceTask, Session } from "./types";
 
 const HOUR = 3600000;
@@ -13,7 +14,7 @@ type TaskTemplate = Omit<ServiceTask, "id" | "bikeId">;
  * check the owner's manual.
  */
 export function defaultSchedule(bike: Pick<Bike, "capacity">): TaskTemplate[] {
-  const twoStroke = /\b2\s*-?\s*t|2-?stroke/i.test(bike.capacity);
+  const twoStroke = isTwoStroke(bike);
   const common: [string, number | null, number | null][] = [
     ["Air filter clean & oil", 3, null],
     ["Chain & sprockets check / adjust", 10, null],

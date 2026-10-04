@@ -22,8 +22,24 @@ export function demoPeople(userId: string, now: number) {
   const bike = (key: string, riderId: string, b: Omit<Bike, "id" | "riderId" | "imageDataUrl" | "archived">): Bike => ({
     id: id(`bike:${key}`), riderId, imageDataUrl: null, archived: false, ...b,
   });
-  const tc125 = bike("tc125", joel.id, { manufacturer: "Husqvarna", model: "TC 125", capacity: "125cc 2T", bikeClass: "MX2", year: 2026, nickname: null, startHours: 0 });
-  const yz250f = bike("yz250f", joel.id, { manufacturer: "Yamaha", model: "YZ250F", capacity: "250cc 4T", bikeClass: "MX2", year: 2021, nickname: null });
+  const tc125 = bike("tc125", joel.id, { manufacturer: "Husqvarna", model: "TC 125", capacity: "125cc 2T", bikeClass: "MX2", year: 2026, nickname: null, startHours: 0, vin: null,
+    parts: {
+      engineOil: { brand: "Motorex", product: "Gear Oil 10W-30" },
+      airFilter: { brand: "Twin Air", product: "" },
+      sparkPlug: { brand: "NGK", product: "" },
+    },
+    mods: [] });
+  const yz250f = bike("yz250f", joel.id, { manufacturer: "Yamaha", model: "YZ250F", capacity: "250cc 4T", bikeClass: "MX2", year: 2021, nickname: null, vin: "DEMO0000000000777",
+    parts: {
+      engineOil: { brand: "Motorex", product: "Cross Power 4T 10W-50" },
+      oilFilter: { brand: "Hiflofiltro", product: "" },
+      airFilter: { brand: "Twin Air", product: "" },
+      piston: { brand: "Wiseco", product: "" },
+      chain: { brand: "DID", product: "520 ERT3" },
+      sprockets: { brand: "Renthal", product: "" },
+      rearTyre: { brand: "Dunlop", product: "Geomax MX34 110/90-19" },
+    },
+    mods: [] });
   const ktm85 = bike("ktm85", charlie.id, { manufacturer: "KTM", model: "85 SX", capacity: "85cc 2T", bikeClass: "Youth 85", year: 2023, nickname: null });
   joel.defaultBikeId = yz250f.id;
   charlie.defaultBikeId = ktm85.id;

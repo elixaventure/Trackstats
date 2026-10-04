@@ -48,6 +48,28 @@ export interface Bike {
   archived: boolean;
   /** Hours already on the bike when it was added (e.g. bought used). */
   startHours?: number | null;
+  /** Chassis number (VIN). Optional; shown on the service history for buyers. */
+  vin?: string | null;
+  /** The parts and brands this rider uses on this bike, for one-tap re-ordering. */
+  parts?: Partial<Record<PartSlot, PartChoice>>;
+  /** Modifications fitted to the bike, e.g. exhaust or re-valved suspension. */
+  mods?: BikeMod[];
+}
+
+export type PartSlot = "engineOil" | "oilFilter" | "airFilter" | "sparkPlug" | "piston" | "chain" | "sprockets" | "frontPads" | "rearPads" | "frontTyre" | "rearTyre" | "coolant";
+
+export interface PartChoice {
+  brand: string;
+  /** Product, grade or part number, e.g. "Cross Power 4T 10W-50". */
+  product: string;
+}
+
+export interface BikeMod {
+  id: Uuid;
+  name: string;
+  /** Day it was fitted (stored inside a JSON column, so not converted by sync). */
+  fittedOn: EpochMs;
+  notes: string;
 }
 
 /** One job on a bike's service schedule, e.g. "Engine oil & filter every 10 h". */
@@ -76,6 +98,8 @@ export interface ServiceRecord {
   doneBy: string;
   /** When it was entered in the app. Entries logged long after the work are flagged. */
   createdAt: EpochMs;
+  /** Parts fitted in this service, by slot. */
+  partsUsed?: Partial<Record<PartSlot, PartChoice>> | null;
 }
 
 export interface Group {

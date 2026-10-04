@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { TextArea, TextField } from "@/components/Field";
-import { logServiceRecord } from "@/data/actions";
-import type { ServiceTask } from "@/domain/types";
+import { logServiceRecord, saveBike } from "@/data/actions";
+import { isChosen, rememberParts, slotLabel, slotsForTask } from "@/domain/parts";
+import type { Bike, PartChoice, PartSlot, ServiceTask } from "@/domain/types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Log jobs done (service) or just an hour-meter reading. */
-export function LogServiceForm({ bikeId, tasks, hoursNow, kind, onDone }: { bikeId: string; tasks: ServiceTask[]; hoursNow: number; kind: "service" | "reading"; onDone: () => void }) {
+export function LogServiceForm({ bike, tasks, hoursNow, kind, onDone }: { bike: Bike; tasks: ServiceTask[]; hoursNow: number; kind: "service" | "reading"; onDone: () => void }) {
+  const bikeId = bike.id;
   const [date, setDate] = useState(today());
   const [hours, setHours] = useState(String(hoursNow));
   const [done, setDone] = useState<Set<string>>(new Set());
@@ -15,6 +17,10 @@ export function LogServiceForm({ bikeId, tasks, hoursNow, kind, onDone }: { bike
   const [cost, setCost] = useState("");
   const [doneBy, setDoneBy] = useState("Me");
   const [error, setError] = useState<string | null>(null);
+  // Parts used, prefilled from the bike's saved choices; edits are remembered for next time.
+  const [parts, setParts] = useState<Partial<Record<PartSlot, PartChoice>>>(() => ({ ...(bike.parts ?? {}) }));
+  const usedSlots = [...new Set(tasks.filter((t) => done.has(t.id)).flatMap((t) => slotsForTask(t.name, bike)))];
+  const setPart = (slot: PartSlot, k: keyof PartChoice, v: string) => setParts((p) => ({ ...p, [slot]: { brand: "", product: "", ...p[slot], [k]: v } }));
 
   const toggle = (id: string) => setDone((d) => { const n = new Set(d); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const save = () => {
@@ -25,7 +31,10 @@ export function LogServiceForm({ bikeId, tasks, hoursNow, kind, onDone }: { bike
     if (!Number.isFinite(at) || at > Date.now() + 86400000) return setError("Pick a date that isn't in the future.");
     const pence = cost.trim() ? Math.round(Number(cost.replace(/[£,]/g, "")) * 100) : null;
     if (pence != null && (!Number.isFinite(pence) || pence < 0)) return setError("Cost should be a number of pounds, e.g. 42.50.");
-    logServiceRecord({ bikeId, kind, performedAt: at, hours: Math.round(h * 10) / 10, taskIds: kind === "service" ? [...done] : [], notes: notes.trim(), costPence: pence, doneBy: doneBy.trim() || "Me" });
+    const used: Partial<Record<PartSlot, PartChoice>> = {};
+    if (kind === "service") for (const slot of usedSlots) { const p = parts[slot]; if (isChosen(p)) used[slot] = { brand: p.brand.trim(), product: p.product.trim() }; }
+    logServiceRecord({ bikeId, kind, performedAt: at, hours: Math.round(h * 10) / 10, taskIds: kind === "service" ? [...done] : [], notes: notes.trim(), costPence: pence, doneBy: doneBy.trim() || "Me", partsUsed: Object.keys(used).length ? used : null });
+    if (Object.keys(used).length) saveBike({ ...bike, parts: rememberParts(bike, used) });
     onDone();
   };
 
@@ -48,13 +57,28 @@ export function LogServiceForm({ bikeId, tasks, hoursNow, kind, onDone }: { bike
           </div>
         </fieldset>
       )}
+      {kind === "service" && usedSlots.length > 0 && (
+        <fieldset className="space-y-3">
+          <legend className="mb-1 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-muted">Parts used (optional)</legend>
+          {usedSlots.map((slot) => (
+            <div key={slot}>
+              <div className="mb-1 text-sm font-semibold">{slotLabel(bike, slot)}</div>
+              <div className="grid grid-cols-[2fr_3fr] gap-2">
+                <TextField label="Brand" value={parts[slot]?.brand ?? ""} onChange={(e) => setPart(slot, "brand", e.target.value)} />
+                <TextField label="Product / size" value={parts[slot]?.product ?? ""} onChange={(e) => setPart(slot, "product", e.target.value)} />
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-muted">Saved to My parts, so it's filled in next time.</p>
+        </fieldset>
+      )}
       {kind === "service" && (
         <div className="grid grid-cols-2 gap-3">
           <TextField label="Done by" value={doneBy} onChange={(e) => setDoneBy(e.target.value)} placeholder="Me, or the shop" />
           <TextField label="Cost £ (optional)" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} />
         </div>
       )}
-      <TextArea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={kind === "service" ? "Oil brand, part numbers, what you found…" : "Optional"} />
+      <TextArea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={kind === "service" ? "What you found, settings, part numbers…" : "Optional"} />
       <p className="text-xs text-muted">Each entry is stamped with when you logged it. Anything logged more than a week after the date is marked “added later” in the service history.</p>
       {error && <p role="alert" className="text-slower">{error}</p>}
       <div className="flex gap-2">

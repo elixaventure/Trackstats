@@ -80,6 +80,14 @@ Each bike has a **service schedule**: jobs with an interval in hours, months, or
 - **For selling** opens a printable service history (Print / Save as PDF), with costs optional. Every entry is stamped with when it was logged. Anything typed in more than 7 days after the work is marked **added later**, so buyers can see what was logged at the time and what was backfilled.
 - Synced via `service_tasks` / `service_records` (RLS: owner of the bike only).
 
+### My parts, modifications and chassis number
+
+- **My parts** (bike → Service): brand and product for oil, filters, plug, piston, chain, sprockets, pads, tyres and coolant. The list fills itself in over time: when you log a service, the parts for the ticked jobs are prefilled and any changes are remembered.
+- **Get parts**: a button on due jobs and a cart on each part. It opens a shop search for that brand, plus the bike when fitment matters (filters, pads, chain). Oil and coolant are searched without the bike. TrackStats keeps no parts or fitment database; the shop's own search handles fitment.
+- **Modifications**: what was fitted and when. These print on the service history for buyers.
+- **Chassis number (VIN)**: optional, on the bike's edit page. It prints on the service history, and can be hidden before printing.
+- **Shops and affiliate links**: switched off. By default "Get parts" opens a plain web shopping search and earns nothing. To use a partner shop, set `PARTNER_SHOP` in `src/config/shops.ts` to its search URL with your affiliate tag. Links are then marked `rel="sponsored"` and the page shows an affiliate disclosure, as UK advertising rules require.
+
 ### Trying the timing without hardware
 
 1. Start a ride with **One pod: start/finish**.

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/States";
 import { saveBike, saveRider } from "@/data/actions";
 import { activeRider } from "@/data/selectors";
+import { cleanVin, vinLooksRight } from "@/domain/parts";
 import type { Bike } from "@/domain/types";
 import { useDb } from "@/hooks/useDb";
 import { uuid } from "@/lib/id";
@@ -18,7 +19,7 @@ export default function BikeEdit() {
   const rider = activeRider(db)!;
   const existing = id === "new" ? null : db.bikes[id];
   const [b, setB] = useState<Bike>(() => existing ?? {
-    id: uuid(), riderId: rider.id, manufacturer: "", model: "", capacity: "", bikeClass: "", year: null, nickname: null, imageDataUrl: null, archived: false, startHours: null,
+    id: uuid(), riderId: rider.id, manufacturer: "", model: "", capacity: "", bikeClass: "", year: null, nickname: null, imageDataUrl: null, archived: false, startHours: null, vin: null,
   });
   const [startHours, setStartHours] = useState(existing?.startHours != null ? String(existing.startHours) : "");
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,11 @@ export default function BikeEdit() {
       </div>
       <TextField label="Hours on the bike now" inputMode="decimal" value={startHours} onChange={(e) => setStartHours(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0 for a new bike" />
       <p className="-mt-2 text-sm text-muted">From the hour meter, if it has one. Rides recorded in TrackStats are added on top for the service schedule.</p>
+      <TextField label="Chassis number (VIN), optional" value={b.vin ?? ""} onChange={(e) => set("vin", cleanVin(e.target.value) || null)} autoCapitalize="characters" spellCheck={false} />
+      <p className="-mt-2 text-sm text-muted">
+        {b.vin && !vinLooksRight(b.vin) ? "Most frames since 1981 have 17 characters (no I, O or Q): double-check it. " : "Stamped on the steering head. "}
+        It goes on your service history so a buyer knows the history belongs to this frame.
+      </p>
       {error && <p role="alert" className="text-slower">{error}</p>}
       <Button variant="primary" size="lg" className="w-full" onClick={save}>Save bike</Button>
       {existing && owner && (
