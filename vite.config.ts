@@ -41,6 +41,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,webp,woff2}"],
         navigateFallback: `${base}index.html`,
+        // Downloadable files (e.g. pitch decks) open as files, not the app, and aren't cached offline.
+        navigateFallbackDenylist: [/\/pitch\//],
+        globIgnores: ["**/pitch/**"],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
           {
