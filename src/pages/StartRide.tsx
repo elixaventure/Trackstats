@@ -8,6 +8,7 @@ import { SelectField, TextArea } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
 import { Segmented } from "@/components/Segmented";
 import { ErrorNote } from "@/components/States";
+import { cloudEnabled } from "@/config/env";
 import { activeAssignment, assignTransponder } from "@/data/actions";
 import { activeRider, groupsForRider, myRiders, riderBikes, visibleRoutes } from "@/data/selectors";
 import type { DbState } from "@/data/db";
@@ -101,6 +102,11 @@ export default function StartRide() {
   return (
     <div className="space-y-6">
       <PageHeader title="Start ride" eyebrow={rider.name} />
+      {cloudEnabled && db.settings.demoMode && (
+        <p className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
+          You're in demo mode: this ride stays on this phone and won't be saved to an account. <Link to="/sign-in?new=1" className="font-semibold underline">Create your account</Link> first to keep it.
+        </p>
+      )}
       <Segmented label="Ride type" columns={2} value={rideType} onChange={pickType}
         options={(Object.keys(RIDE_TYPE_LABEL) as RideType[]).map((t) => ({ value: t, label: RIDE_TYPE_LABEL[t] }))} />
 

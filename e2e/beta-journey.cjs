@@ -96,8 +96,12 @@ async function holdFinish(page) {
   let userId, riderId, bikeId, routeId;
 
   try {
-    await step("demo loads for a first-time visitor", async () => {
+    await step("a new phone opens on the welcome screen, demo one tap away", async () => {
       await go(a, "");
+      await a.waitForURL(/\/welcome$/);
+      await a.getByRole("link", { name: "Create account" }).waitFor();
+      await shot(a, "00-welcome", false);
+      await a.getByRole("button", { name: "Look around with demo data first" }).click();
       await a.getByRole("link", { name: "Create your account" }).waitFor();
     });
 

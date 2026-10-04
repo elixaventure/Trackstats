@@ -11,6 +11,8 @@ export interface Settings {
   demoMode: boolean;
   /** Which version of the demo data this device holds (bumped when the sample data changes). */
   demoVersion?: number;
+  /** Chose "look around the demo" on the welcome screen (cloud builds only). */
+  exploringDemo?: boolean;
 }
 
 /** Everything except GPS traces, which live in their own IndexedDB keys per session. */

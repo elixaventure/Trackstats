@@ -27,6 +27,7 @@ const Transponders = lazy(() => import("./pages/Transponders"));
 const Groups = lazy(() => import("./pages/Groups"));
 const Settings = lazy(() => import("./pages/Settings"));
 const SignIn = lazy(() => import("./pages/SignIn"));
+const Welcome = lazy(() => import("./pages/Welcome"));
 
 const s = (el: ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
       { path: "*", element: <NotFound /> },
     ],
   },
+  { path: "welcome", element: s(<Welcome />) },
   // Live ride is full-screen: no navigation chrome to mis-tap with gloves.
   { path: "ride/live", element: s(<LiveRide />) },
   // Printable service history: plain page without app navigation.
