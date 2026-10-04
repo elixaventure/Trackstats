@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button, LinkButton } from "@/components/Button";
 import { Card, SectionTitle } from "@/components/Card";
 import { TextField } from "@/components/Field";
@@ -44,7 +44,7 @@ export default function Profile() {
       </Card>
 
       <Card>
-        <SectionTitle action={<LinkButton to="/profile/bikes/new" className="min-h-10 px-3 text-sm"><Icon name="plus" className="size-4" /> Add bike</LinkButton>}>Bikes</SectionTitle>
+        <SectionTitle action={<Link to="/garage" className="text-sm font-semibold text-plate">Garage →</Link>}>Bikes</SectionTitle>
         {bikes.length ? bikes.map((b) => (
           <ListRow key={b.id} to={`/profile/bikes/${b.id}`} icon="bike" title={`${b.manufacturer} ${b.model}${b.nickname ? ` · ${b.nickname}` : ""}`}
             sub={`${b.year ?? ""} ${b.capacity} · ${b.bikeClass}${rider.defaultBikeId === b.id ? " · default" : ""}`} />

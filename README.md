@@ -14,7 +14,7 @@ npm run dev        # http://localhost:5173
 ```
 
 With no environment variables it runs in **local demo mode**:
-- Rider: Joel Gaffey #221 on a Honda CRF250R.
+- Rider: Joel Gaffey #777, with a 2021 Husqvarna TC 125 and a 2021 Yamaha YZ250F.
 - Second managed rider: Charlie, #77.
 - Three routes, and seven weeks of improving sessions with GPS traces.
 - Nothing leaves the device.

@@ -36,7 +36,7 @@ export default function Home() {
         <div className="min-w-0">
           <h1 className="break-words font-display text-4xl font-black uppercase leading-none tracking-wide">{rider.name || "New rider"}</h1>
           <p className="mt-1 truncate text-muted">
-            {bikeLabel(db, rider.defaultBikeId)}{rider.raceNumber && ` · #${rider.raceNumber}`}{rider.riderClass && ` · ${rider.riderClass}`}
+            <Link to="/garage" className="underline decoration-line underline-offset-4 hover:text-ink">{bikeLabel(db, rider.defaultBikeId)}</Link>{rider.raceNumber && ` · #${rider.raceNumber}`}{rider.riderClass && ` · ${rider.riderClass}`}
           </p>
         </div>
       </header>

@@ -10,7 +10,7 @@ export function demoPeople(userId: string, now: number) {
     visibility: "public", defaultBikeId: null, createdAt: created, ...p,
   });
 
-  const joel = rider("joel", userId, { name: "Joel Gaffey", username: "joelgaffey221", raceNumber: "221", riderClass: "MX2 Clubman", ageCategory: "Senior" });
+  const joel = rider("joel", userId, { name: "Joel Gaffey", username: "joelgaffey777", raceNumber: "777", riderClass: "MX2 Clubman", ageCategory: "Senior" });
   const charlie = rider("charlie", userId, { name: "Charlie Turner", username: "charlie77", raceNumber: "77", riderClass: "Youth 85", ageCategory: "Under 13", visibility: "private" });
   const friends = [
     rider("jake", id("user:jake"), { name: "Jake Hollis", username: "jakeh14", raceNumber: "14", riderClass: "MX1 Expert" }),
@@ -22,10 +22,10 @@ export function demoPeople(userId: string, now: number) {
   const bike = (key: string, riderId: string, b: Omit<Bike, "id" | "riderId" | "imageDataUrl" | "archived">): Bike => ({
     id: id(`bike:${key}`), riderId, imageDataUrl: null, archived: false, ...b,
   });
-  const crf = bike("crf250r", joel.id, { manufacturer: "Honda", model: "CRF250R", capacity: "250cc 4T", bikeClass: "MX2", year: 2024, nickname: "The Red One" });
-  const ktm350 = bike("ktm350", joel.id, { manufacturer: "KTM", model: "350 EXC-F", capacity: "350cc 4T", bikeClass: "Enduro E2", year: 2022, nickname: null });
+  const tc125 = bike("tc125", joel.id, { manufacturer: "Husqvarna", model: "TC 125", capacity: "125cc 2T", bikeClass: "MX2", year: 2021, nickname: null });
+  const yz250f = bike("yz250f", joel.id, { manufacturer: "Yamaha", model: "YZ250F", capacity: "250cc 4T", bikeClass: "MX2", year: 2021, nickname: null });
   const ktm85 = bike("ktm85", charlie.id, { manufacturer: "KTM", model: "85 SX", capacity: "85cc 2T", bikeClass: "Youth 85", year: 2023, nickname: null });
-  joel.defaultBikeId = crf.id;
+  joel.defaultBikeId = yz250f.id;
   charlie.defaultBikeId = ktm85.id;
 
   const family: Group = { id: id("group:family"), name: "Family", kind: "family", createdByUserId: userId, createdAt: created };
@@ -44,5 +44,5 @@ export function demoPeople(userId: string, now: number) {
     { id: id("assign:joel-001"), transponderId: personal.id, riderId: joel.id, assignedByUserId: userId, assignedAt: now - 32 * 86400000, releasedAt: null },
   ];
 
-  return { joel, charlie, friends, bikes: { crf, ktm350, ktm85 }, groups: { family, crew }, members, tags: { personal, shared1, shared2 }, assignments };
+  return { joel, charlie, friends, bikes: { tc125, yz250f, ktm85 }, groups: { family, crew }, members, tags: { personal, shared1, shared2 }, assignments };
 }

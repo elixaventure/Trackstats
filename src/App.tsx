@@ -18,6 +18,7 @@ const RouteDetail = lazy(() => import("./pages/RouteDetail"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const Achievements = lazy(() => import("./pages/Achievements"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Garage = lazy(() => import("./pages/Garage"));
 const RiderEdit = lazy(() => import("./pages/RiderEdit"));
 const BikeEdit = lazy(() => import("./pages/BikeEdit"));
 const Transponders = lazy(() => import("./pages/Transponders"));
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
       { path: "leaderboards", element: s(<Leaderboards />) },
       { path: "achievements", element: s(<Achievements />) },
       { path: "profile", element: s(<Profile />) },
+      { path: "garage", element: s(<Garage />) },
       { path: "profile/rider/:id", element: s(<RiderEdit />) },
       { path: "profile/bikes/:id", element: s(<BikeEdit />) },
       { path: "transponders", element: s(<Transponders />) },

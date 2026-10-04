@@ -19,7 +19,7 @@ interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; co
 const DAY = 86400000;
 
 /** Bump when the sample data changes; devices still on demo data are refreshed automatically. */
-export const DEMO_VERSION = 2;
+export const DEMO_VERSION = 3;
 
 // Joel's Bacup bests (seconds) tell the product story: 2:16.84 → 2:08.42 in seven weeks.
 const PLANS: Plan[] = [
@@ -77,7 +77,10 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
     const rand = mulberry32(1000 + idx);
     const route: Route = routes[plan.route];
     const rider = plan.rider === "joel" ? people.joel : people.charlie;
-    const bike = plan.rider === "charlie" ? people.bikes.ktm85 : plan.route === "woodland" ? people.bikes.ktm350 : people.bikes.crf;
+    // Joel swaps between his two bikes at Bacup, so the garage can show which one he's faster on.
+    const bike = plan.rider === "charlie" ? people.bikes.ktm85
+      : plan.route === "bacup" ? (plan.daysAgo % 2 === 1 ? people.bikes.yz250f : people.bikes.tc125)
+      : plan.route === "sprint" ? people.bikes.tc125 : people.bikes.yz250f;
     const sessionId = stableUuid(`session:${plan.rider}:${plan.route}:${plan.daysAgo}`);
     const startAt = now - plan.daysAgo * DAY - (now % DAY) + (plan.rider === "charlie" ? 9.5 : 10.25) * 3600000 + Math.round(rand() * 1800000);
     const progress = Math.min(1, (49 - plan.daysAgo) / 48);
