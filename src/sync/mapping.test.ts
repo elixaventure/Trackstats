@@ -8,6 +8,12 @@ import { gpsRows, routeChildRows, TABLES, toRow } from "./mapping";
 // field the sync layer sends must exist as a column.
 const sql = readFileSync(new URL("../../supabase/migrations/0001_schema.sql", import.meta.url), "utf8");
 
+/** Columns declared as timestamptz in a table. */
+function timeColumns(table: string): Set<string> {
+  const m = sql.match(new RegExp(`create table public\\.${table} \\(([\\s\\S]*?)\\n\\);`))!;
+  return new Set(m[1]!.split("\n").map((l) => l.trim().split(/\s+/)).filter((w) => w[1] === "timestamptz").map((w) => w[0]!));
+}
+
 function columns(table: string): Set<string> {
   const m = sql.match(new RegExp(`create table public\\.${table} \\(([\\s\\S]*?)\\n\\);`));
   if (!m) throw new Error(`no table ${table}`);
@@ -21,7 +27,10 @@ describe("sync mapping matches the SQL schema", () => {
     it(`${table} → ${TABLES[table]}`, () => {
       const row = Object.values(state[table] as Record<string, object>)[0]!;
       const cols = columns(TABLES[table]);
-      for (const key of Object.keys(toRow(row))) expect(cols, `${TABLES[table]}.${key}`).toContain(key);
+      const out = toRow(row);
+      for (const key of Object.keys(out)) expect(cols, `${TABLES[table]}.${key}`).toContain(key);
+      // Timestamps must go out as ISO strings, never epoch milliseconds.
+      for (const key of timeColumns(TABLES[table])) if (key in out && out[key] != null) expect(typeof out[key], `${TABLES[table]}.${key}`).toBe("string");
     });
   }
   it("route children and gps points", () => {

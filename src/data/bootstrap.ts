@@ -51,13 +51,36 @@ export async function resetToDemo() {
   store.init(await seedDemo());
 }
 
-/** Replace local demo data with a real (cloud) account. */
+/**
+ * Replace local demo data with a real (cloud) account. Loads what the account
+ * already has (signing in on a second phone); only a brand-new account gets a
+ * blank rider profile, so signing in again never creates a duplicate rider.
+ */
 export async function switchToAccount(userId: string, email: string | null) {
   await clearAll();
   outbox.clear();
   const s = emptyState(userId, email);
-  store.init(s);
-  await saveState(s);
-  // The first rider profile is queued so it reaches the server on first sync.
-  store.upsert("riders", Object.values(s.riders));
+  const blank = Object.values(s.riders)[0]!;
+  store.init({ ...s, riders: {} });
+  await saveState(store.getState());
+  const { sync } = await import("@/sync/engine");
+  await sync.pullAll().catch(() => undefined); // offline: start with a blank rider
+  const mine = Object.values(store.getState().riders).filter((r) => r.ownerUserId === userId).sort((a, b) => a.createdAt - b.createdAt);
+  if (mine.length) store.update((st) => ({ ...st, activeRiderId: mine[0]!.id }));
+  else store.upsert("riders", [blank]); // queued so it reaches the server on the next sync
+  await store.flush();
+}
+
+/**
+ * Someone who confirms their email lands back in the app already signed in
+ * (the session arrives in the link). Move them off the demo data automatically.
+ */
+export async function adoptExistingSession() {
+  const { getSupabase } = await import("@/sync/supabase");
+  const sb = getSupabase();
+  if (!sb || !store.getState().settings.demoMode) return false;
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return false;
+  await switchToAccount(data.session.user.id, data.session.user.email ?? null);
+  return true;
 }

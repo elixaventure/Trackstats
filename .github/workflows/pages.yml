@@ -35,6 +35,11 @@ jobs:
       - run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          # Accounts and cloud sync. Set both as repository *variables* (Settings →
+          # Secrets and variables → Actions → Variables). They are public values,
+          # protected by Row Level Security. Leave unset for a demo-only build.
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
       # GitHub Pages has no URL rewrites: serving the app as the 404 page makes deep links work.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3

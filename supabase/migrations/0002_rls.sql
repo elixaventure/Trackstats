@@ -79,7 +79,10 @@ alter table public.subscriptions enable row level security;
 create policy "conditions readable" on public.conditions for select using (true);
 
 -- Riders
-create policy "riders read" on public.rider_profiles for select using (public.can_view_rider(id));
+-- SELECT policies also apply to the new row of an upsert (INSERT ... ON CONFLICT DO
+-- UPDATE), before it exists in the table. So they test the row's own columns first
+-- rather than only looking the row up by id, which would reject every first save.
+create policy "riders read" on public.rider_profiles for select using (owner_user_id = auth.uid() or visibility = 'public' or public.can_view_rider(id));
 create policy "riders insert own" on public.rider_profiles for insert with check (owner_user_id = auth.uid());
 create policy "riders update own" on public.rider_profiles for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
 create policy "riders delete own" on public.rider_profiles for delete using (owner_user_id = auth.uid());
@@ -97,7 +100,7 @@ create policy "service tasks own" on public.service_tasks for all using (public.
 create policy "service records own" on public.service_records for all using (public.owns_bike(bike_id)) with check (public.owns_bike(bike_id));
 
 -- Groups
-create policy "groups read members" on public.groups for select using (public.in_group(id));
+create policy "groups read members" on public.groups for select using (created_by_user_id = auth.uid() or public.in_group(id));
 create policy "groups create" on public.groups for insert with check (created_by_user_id = auth.uid());
 create policy "groups manage" on public.groups for update using (public.manages_group(id));
 create policy "groups delete creator" on public.groups for delete using (created_by_user_id = auth.uid());
@@ -109,7 +112,9 @@ create policy "members update by manager" on public.group_members for update usi
 create policy "members remove" on public.group_members for delete using (public.manages_group(group_id) or public.owns_rider(rider_id));
 
 -- Transponders
-create policy "tags read" on public.transponders for select using (public.can_use_transponder(id));
+create policy "tags read" on public.transponders for select using (
+  (owner_rider_id is not null and public.owns_rider(owner_rider_id)) or (owner_group_id is not null and public.in_group(owner_group_id))
+);
 create policy "tags create" on public.transponders for insert with check (
   (owner_rider_id is not null and public.owns_rider(owner_rider_id)) or (owner_group_id is not null and public.manages_group(owner_group_id))
 );

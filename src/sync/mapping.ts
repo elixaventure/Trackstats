@@ -29,7 +29,8 @@ const SKIP = new Set(["isDemo", "imageDataUrl", "polyline", "sectors", "favourit
 
 const snake = (k: string) => k.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`);
 const camel = (k: string) => k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-const isTimeKey = (k: string) => /At$/.test(k);
+// Epoch-ms fields that are timestamptz columns: createdAt, startedAt, …, and timing events' `at`.
+const isTimeKey = (k: string) => k === "at" || /At$/.test(k);
 
 export function toRow(obj: object): Record<string, unknown> {
   const row: Record<string, unknown> = {};

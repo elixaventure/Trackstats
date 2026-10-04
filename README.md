@@ -167,19 +167,47 @@ supabase/migrations/  Postgres schema + Row Level Security.
   - GPS traces are never public.
 - The client only ever holds the public anon key.
 
-## Supabase setup (when you're ready for accounts)
+## Accounts and cloud sync (beta setup)
 
-1. Create a Supabase project.
-2. In the SQL editor, run `supabase/migrations/0001_schema.sql`, then `0002_rls.sql`. Both were validated against a real Postgres engine (PGlite) with RLS checks. They haven't yet been run against a live Supabase project.
-3. Copy `.env.example` to `.env.local` and fill in:
+Without Supabase the app runs in demo mode: sample data, stored only on that phone. With it, testers sign up, and their rides, bikes and service history back up to the cloud and appear on any phone they sign in on.
 
-| Variable | Where | Secret? |
+One-time setup, about 10 minutes:
+
+1. **Create a project** at supabase.com (the free tier is fine for a beta). Pick a region near the riders, e.g. London (eu-west-2).
+2. **Create the database.** Open the SQL Editor and run `supabase/migrations/0001_schema.sql`, then `0002_rls.sql`. Paste each file's whole contents and press Run.
+3. **Auth settings.** Open Authentication → URL Configuration:
+   - Site URL: `https://elixaventure.github.io/Trackstats/`
+   - Redirect URLs: add `https://elixaventure.github.io/Trackstats/**`
+
+   Email confirmation is on by default; leave it on. Supabase's built-in email sender is rate-limited to a few emails an hour. For more than a handful of testers, add your own SMTP under Authentication → Emails, or turn confirmation off for the beta.
+4. **Connect the app.** In Project Settings → API, copy the Project URL and the `anon` `public` key. In GitHub, open the repo's Settings → Secrets and variables → Actions → **Variables** tab, and add:
+   - `SUPABASE_URL` = the Project URL
+   - `SUPABASE_ANON_KEY` = the anon public key
+
+   Then re-run the "Publish to GitHub Pages" workflow, or push any change. The live app now has **Sign in / Create account** under Profile → Settings.
+
+| Value | Where it goes | Secret? |
 | --- | --- | --- |
-| `VITE_SUPABASE_URL` | Project Settings → API → Project URL | No (public) |
-| `VITE_SUPABASE_ANON_KEY` | Project Settings → API → anon public key | No (public; RLS protects data) |
-| `VITE_MAP_STYLE_URL` | Optional MapLibre style URL. Defaults to OpenFreeMap (free, no key) | No |
+| Project URL | GitHub variable `SUPABASE_URL`, or `VITE_SUPABASE_URL` in `.env.local` | No (public) |
+| anon public key | GitHub variable `SUPABASE_ANON_KEY`, or `VITE_SUPABASE_ANON_KEY` in `.env.local` | No (public; RLS protects data) |
+| `VITE_MAP_STYLE_URL` | Optional MapLibre style. Defaults to OpenFreeMap's public instance (free, no key, nothing to sign up for) | No |
 
-**Never** put the `service_role` key in a `VITE_` variable: it would ship to every phone. Server-side jobs (billing webhooks, leaderboard materialisation, achievement notifications) belong in Supabase Edge Functions, where the service role key lives as a function secret.
+**Never** put the `service_role` key in a `VITE_` variable or a GitHub variable: it would ship to every phone. Server-side jobs (billing webhooks, leaderboard materialisation, achievement notifications) belong in Supabase Edge Functions, where the service role key lives as a function secret.
+
+### How it was tested
+
+- `npm test` includes `src/sync/rls.test.ts`, which runs the migrations on real Postgres (PGlite) and checks Row Level Security. It uses upserts, exactly as the app saves.
+- `npm run e2e` builds the app against `e2e/fake-supabase.mjs`, a local stand-in for a Supabase project: real Postgres with these migrations and RLS, behind the parts of the REST and auth APIs the app uses. It then drives Chromium through a beta tester's journey:
+  - sign up with email confirmation, then set up a profile and a bike (hours, VIN);
+  - log a service with parts, and add a modification;
+  - map a track by GPS (the browser's location is moved around an oval), then ride three GPS-timed laps;
+  - log something offline and check it syncs once back online;
+  - reopen the app;
+  - sign in on a second phone and get everything back, including lap analysis;
+  - create a second account, which sees the public track but none of the first rider's private data.
+
+  Screenshots go to `e2e/out/`. CI runs it on every push (the "End-to-end" workflow).
+- The stand-in is not Supabase itself. Once the real project exists, do one sign-up on a phone to confirm the email link and the first sync.
 
 ## Deploying
 

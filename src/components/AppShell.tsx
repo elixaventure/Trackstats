@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { APP_NAME } from "@/config/env";
+import { APP_NAME, cloudEnabled } from "@/config/env";
 import { useDb } from "@/hooks/useDb";
 import { useOnline } from "@/hooks/useOnline";
 import { useSync } from "@/hooks/useSync";
@@ -41,7 +41,9 @@ function StatusStrip() {
         </Link>
       )}
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1.5 font-mono text-xs text-muted">
-        {db.settings.demoMode && <span>Demo data on this device · not synced</span>}
+        {db.settings.demoMode && (cloudEnabled
+          ? <span>Demo data · <Link to="/sign-in" className="text-plate underline underline-offset-2">Create your account</Link></span>
+          : <span>Demo data on this device · not synced</span>)}
         {!online && <span className="flex items-center gap-1 text-warn"><Icon name="offline" className="size-4" /> Offline — recording locally</span>}
         {!db.settings.demoMode && sync.pending > 0 && <span>{sync.pending} change{sync.pending === 1 ? "" : "s"} waiting to sync</span>}
       </div>

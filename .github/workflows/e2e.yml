@@ -1,0 +1,29 @@
+# Beta-tester journey in a real browser against a local stand-in for Supabase
+# (real Postgres with the app's migrations and RLS): sign up, profile, bike,
+# service, map a track by GPS, timed laps, offline sync, second phone, second user.
+name: End-to-end
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e/out

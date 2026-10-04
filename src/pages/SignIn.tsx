@@ -34,7 +34,7 @@ export default function SignIn() {
       if (res.error) throw res.error;
       if (!res.data.session) { setInfo("Check your email to confirm your account, then sign in."); return; }
       await switchToAccount(res.data.session.user.id, res.data.session.user.email ?? null);
-      await sync.pullAll().catch(() => undefined); // first load; offline is fine, it retries later
+      void sync.flush();
       navigate("/", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
