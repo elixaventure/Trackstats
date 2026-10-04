@@ -6,7 +6,7 @@ import { RouteMap } from "@/components/map/RouteMap";
 import { Segmented } from "@/components/Segmented";
 import { saveRoute } from "@/data/actions";
 import { store } from "@/data/store";
-import { analyseShape, autoSections, cornerAt, finalSectionName, numberFrom, suggestStart } from "@/domain/corners";
+import { analyseShape, autoSections, finalSectionName, numberFrom } from "@/domain/corners";
 import { buildGeometry, elevationGain, haversineM, pointAtDistance, rotateLoop, simplify, subLine } from "@/domain/geo";
 import { formatDistance } from "@/domain/time";
 import { RIDE_TYPE_LABEL, isLoopType, type LngLatAlt, type RideType, type Route, type TimingGate } from "@/domain/types";
@@ -36,10 +36,7 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loop = loopType;
-  const startCorner = loop ? cornerAt(shape, startM, g.length, true) : null;
-  const betterStart = startCorner ? suggestStart(shape) : null;
   const numbered = numberFrom(shape, startM, g.length, loop);
-  const moveStart = (m: number) => { setStartM(m); setSectors(markSections(m)); };
 
   // Distances measured on the final route (after moving the start line).
   const rel = (atM: number) => (loop ? (atM - startM + g.length) % g.length : atM - startM);
@@ -88,12 +85,6 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
       <Card className="space-y-4">
         <SectionTitle>{loop ? "Start/finish line" : "Start and finish"}</SectionTitle>
         <Slider label={loop ? "Start/finish position" : "Start"} value={startM} max={loop ? g.length : finishM - 20} onChange={setStartM} />
-        {startCorner && betterStart != null && (
-          <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3">
-            <p className="text-sm text-warn">The start/finish line is in a corner (T{numbered.corners.find((c) => c.apexM === startCorner.apexM)?.number ?? "?"}). Laps are timed more accurately on a straight: you're faster there and everyone crosses it on the same line.</p>
-            <Button onClick={() => moveStart(betterStart)}>Move it to the middle of the longest straight</Button>
-          </div>
-        )}
         {!loop && <Slider label="Finish" value={finishM} min={startM + 20} max={g.length} onChange={setFinishM} />}
       </Card>
 

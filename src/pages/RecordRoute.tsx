@@ -120,7 +120,8 @@ export default function RecordRoute() {
       <PageHeader back="/routes" title="Map a track" />
       {phase === "ready" && (
         <Card className="space-y-3">
-          <p>Ride one lap with your phone on you. Press <strong>Record</strong> on the start line; for a stage, stop at the finish.</p>
+          <p>Ride one lap with your phone on you. Where you press <strong>Record</strong> becomes the start/finish line; for a stage, stop at the finish.</p>
+          <p className="text-sm">Start on a straight if you can, not in a corner: you're faster there and everyone crosses the line the same way, so lap times are more accurate.</p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
             <li>Wait for the GPS chip to show ±10 m or better before you set off.</li>
             <li>Keep the screen on (don't press the lock button): browsers pause GPS when the phone locks. A zipped chest or jacket pocket is fine.</li>

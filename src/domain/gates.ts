@@ -41,7 +41,15 @@ const CONFIRM_M = 20;
 /** On a loop, a lap needs at least this share of the track since the last one. */
 const MIN_LAP_SHARE = 0.5;
 
-interface Candidate { role: PodRole; at: number; sign: 1 | -1; progress: number }
+interface Candidate { role: PodRole; at: number; sign: 1 | -1; progress: number; gateProgress: number | null }
+interface Fix { t: number; progress: number; speed: number | null; acc: number }
+
+/** Fixes this close (in time) to a crossing are used to pin down when it happened. */
+const REFINE_WINDOW_MS = 4000;
+/** Wait this long after a crossing for fixes beyond the line, unless the ride ends. */
+const REFINE_WAIT_MS = 3000;
+/** Doppler speed is much steadier than position: typically within ~0.5 m/s. */
+const SPEED_SD = 0.5;
 
 /**
  * GPS-only timing gates, fed one fix at a time (live) or a whole trace (re-timing).
@@ -60,20 +68,26 @@ export class GateDetector {
   private progress = 0;
   private candidates: Candidate[] = [];
   private lastProgress = new Map<PodRole, number>();
+  private hist: Fix[] = [];
+  private lastT = 0;
 
-  constructor(private g: RouteGeometry, private gates: PreparedGate[], private loop: boolean) {}
+  constructor(private g: RouteGeometry, private gates: PreparedGate[], private loop: boolean, private opts: { refine: boolean } = { refine: true }) {}
 
   /** Which way round the rider is going: 1 as mapped, -1 reversed, 0 not known yet. */
   get direction() { return this.dir; }
 
-  push(p: Pick<GpsPoint, "lat" | "lng" | "t" | "accuracyM">): Crossing[] {
+  push(p: Pick<GpsPoint, "lat" | "lng" | "t" | "accuracyM"> & { speedMps?: number | null }): Crossing[] {
     if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng) || p.accuracyM > GATE_MAX_ACCURACY_M) return [];
     const xy = this.g.proj.toXy(p.lat, p.lng);
     const pr = projectOntoRoute(this.g, xy);
     const along = Math.abs(pr.offsetM) <= ON_ROUTE_M ? pr.distanceM : null;
     const prev = this.prev;
     this.prev = { xy, t: p.t, along };
-    if (!prev || p.t - prev.t > GATE_MAX_GAP_MS || p.t <= prev.t) return this.release();
+    this.lastT = Math.max(this.lastT, p.t);
+    if (!prev || p.t - prev.t > GATE_MAX_GAP_MS || p.t <= prev.t) {
+      if (along != null) this.remember(p, this.progress);
+      return this.release();
+    }
 
     // Progress along the route since the last fix (unwrapped round a loop).
     let d: number | null = null;
@@ -87,8 +101,10 @@ export class GateDetector {
       // Reject jumps between parts of the route that pass close to each other.
       if (Math.abs(x) <= Math.max(40, 30 * ((p.t - prev.t) / 1000)) && Math.abs(x) < this.g.length / 2) d = x;
     }
+    const before = this.progress;
     if (d != null) {
       this.progress += d;
+      this.remember(p, this.progress);
       if (this.dir === 0 && Math.abs(this.progress) >= DIRECTION_TRAVEL_M) this.dir = this.progress > 0 ? 1 : -1;
     }
 
@@ -103,9 +119,17 @@ export class GateDetector {
     }
     for (const h of hits) {
       if (this.dir !== 0 && h.sign !== this.dir) continue;
+      // Where the gate sits on the progress scale, for refining the crossing time.
+      let gateProgress: number | null = null;
+      const gate = this.gates.find((x) => x.role === h.role);
+      if (gate && prev.along != null && d != null) {
+        let rel = gate.distanceM - prev.along;
+        if (this.loop) { const L = this.g.length; rel = ((rel % L) + L) % L; if (rel > L / 2) rel -= L; }
+        gateProgress = before + rel;
+      }
       // Latest crossing wins until it's confirmed (wobbling over the line while stopped).
       this.candidates = this.candidates.filter((c) => !(c.role === h.role && c.sign === h.sign));
-      this.candidates.push({ ...h, progress: this.progress });
+      this.candidates.push({ ...h, progress: this.progress, gateProgress });
     }
     return this.release();
   }
@@ -121,16 +145,82 @@ export class GateDetector {
     const keep: Candidate[] = [];
     for (const c of this.candidates.sort((a, b) => a.at - b.at)) {
       if (c.sign !== this.dir) continue;
-      if (!final && (this.progress - c.progress) * this.dir < CONFIRM_M) { keep.push(c); continue; }
+      const waiting = (this.progress - c.progress) * this.dir < CONFIRM_M || (this.opts.refine && this.lastT - c.at < REFINE_WAIT_MS);
+      if (!final && waiting) { keep.push(c); continue; }
       const last = this.lastProgress.get(c.role);
       const needed = this.loop && c.role === "start_finish" ? this.g.length * MIN_LAP_SHARE : CONFIRM_M;
       if (last != null && Math.abs(c.progress - last) < needed) continue;
       this.lastProgress.set(c.role, c.progress);
-      out.push({ role: c.role, at: c.at });
+      out.push({ role: c.role, at: (this.opts.refine && this.refine(c)) || c.at });
     }
     this.candidates = keep;
+    this.hist = this.hist.filter((h) => this.lastT - h.t < 15000);
     return out;
   }
+
+  private remember(p: { t: number; speedMps?: number | null; accuracyM: number }, progress: number) {
+    const speed = p.speedMps != null && Number.isFinite(p.speedMps) && p.speedMps >= 0 ? p.speedMps : null;
+    this.hist.push({ t: p.t, progress, speed, acc: p.accuracyM });
+  }
+
+  /**
+   * Speed-assisted crossing time. Rather than a straight line between the two
+   * fixes either side of the gate, fit the rider's progress along the track over
+   * the few seconds around it, using every position (weighted by its accuracy)
+   * and the phone's Doppler speed, which is far steadier than position. Speeding
+   * up or braking through the line is captured, and position wobble averages out.
+   */
+  private refine(c: Candidate): number | null {
+    if (c.gateProgress == null) return null;
+    const near = this.hist.filter((h) => Math.abs(h.t - c.at) <= REFINE_WINDOW_MS && h.acc <= 25);
+    const before = near.filter((h) => h.t < c.at).length, after = near.filter((h) => h.t >= c.at).length;
+    if (before < 1 || after < 1 || near.length < 3) return null;
+    const useSpeed = near.filter((h) => h.speed != null).length >= 2;
+    const k = useSpeed ? 3 : 2; // quadratic with speeds, straight line without
+    const A = Array.from({ length: k }, () => new Array<number>(k).fill(0));
+    const B = new Array<number>(k).fill(0);
+    const add = (row: number[], y: number, w: number) => {
+      for (let i = 0; i < k; i++) { B[i]! += w * row[i]! * y; for (let j = 0; j < k; j++) A[i]![j]! += w * row[i]! * row[j]!; }
+    };
+    for (const h of near) {
+      const tau = (h.t - c.at) / 1000;
+      const y = (h.progress - c.gateProgress) * this.dir;
+      add([1, tau, tau * tau].slice(0, k), y, 1 / Math.max(3, h.acc) ** 2);
+      if (useSpeed && h.speed != null) add([0, 1, 2 * tau], h.speed, 1 / SPEED_SD ** 2);
+    }
+    const coef = solve(A, B);
+    if (!coef) return null;
+    const [a, b, q = 0] = coef as [number, number, number?];
+    if (!(b > 0.3)) return null; // not clearly moving forward through the line
+    let tau: number;
+    if (Math.abs(q) < 1e-6) tau = -a / b;
+    else {
+      const disc = b * b - 4 * q * a;
+      if (disc < 0) return null;
+      const r = [(-b + Math.sqrt(disc)) / (2 * q), (-b - Math.sqrt(disc)) / (2 * q)];
+      tau = Math.abs(r[0]!) < Math.abs(r[1]!) ? r[0]! : r[1]!;
+    }
+    if (!Number.isFinite(tau) || Math.abs(tau) > 2) return null; // implausible: keep the simple estimate
+    return Math.round(c.at + tau * 1000);
+  }
+}
+
+/** Solve a small linear system (Gaussian elimination); null if singular. */
+function solve(A: number[][], B: number[]): number[] | null {
+  const n = B.length;
+  const M = A.map((row, i) => [...row, B[i]!]);
+  for (let col = 0; col < n; col++) {
+    let piv = col;
+    for (let r = col + 1; r < n; r++) if (Math.abs(M[r]![col]!) > Math.abs(M[piv]![col]!)) piv = r;
+    if (Math.abs(M[piv]![col]!) < 1e-12) return null;
+    [M[col], M[piv]] = [M[piv]!, M[col]!];
+    for (let r = 0; r < n; r++) {
+      if (r === col) continue;
+      const f = M[r]![col]! / M[col]![col]!;
+      for (let c = col; c <= n; c++) M[r]![c]! -= f * M[col]![c]!;
+    }
+  }
+  return M.map((row, i) => row[n]! / row[i]!);
 }
 
 /** Fraction of a move from `from` by `d` metres along the route at which it passes `gateM`, or null. */
