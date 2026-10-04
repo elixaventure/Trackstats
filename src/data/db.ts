@@ -9,6 +9,8 @@ export interface Settings {
   simSpeed: number;
   /** Local demo data; never synced. */
   demoMode: boolean;
+  /** Which version of the demo data this device holds (bumped when the sample data changes). */
+  demoVersion?: number;
 }
 
 /** Everything except GPS traces, which live in their own IndexedDB keys per session. */

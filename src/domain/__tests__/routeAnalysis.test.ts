@@ -10,8 +10,8 @@ const bacup = Object.values(s.routes).find((r) => r.name.startsWith("Bacup"))!;
 
 describe("demo data", () => {
   it("tells the improvement story on the main track", () => {
-    const alex = Object.values(s.riders).find((r) => r.name === "Alex Turner")!;
-    const sessions = Object.values(s.sessions).filter((x) => x.riderId === alex.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
+    const joel = Object.values(s.riders).find((r) => r.name === "Joel Gaffey")!;
+    const sessions = Object.values(s.sessions).filter((x) => x.riderId === joel.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
     expect(sessions[0]!.summary!.fastestLapMs).toBe(136_840);
     expect(sessions[sessions.length - 1]!.summary!.fastestLapMs).toBe(128_420);
     expect(sessions[sessions.length - 1]!.summary!.isPb).toBe(true);
@@ -20,8 +20,8 @@ describe("demo data", () => {
 
 describe("section analysis", () => {
   it("finds gains in sections the rider improved and treats sub-noise deltas as equal", () => {
-    const alex = Object.values(s.riders).find((r) => r.name === "Alex Turner")!;
-    const sessions = Object.values(s.sessions).filter((x) => x.riderId === alex.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
+    const joel = Object.values(s.riders).find((r) => r.name === "Joel Gaffey")!;
+    const sessions = Object.values(s.sessions).filter((x) => x.riderId === joel.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
     const bestLap = (sid: string) => Object.values(s.laps).filter((l) => l.sessionId === sid && l.valid).sort((a, b) => a.durationMs - b.durationMs)[0]!;
     const first = sessions[0]!, last = sessions[sessions.length - 1]!;
     const cur = { points: demo.gps[last.id]!, lap: bestLap(last.id) };
@@ -56,8 +56,8 @@ describe("geometry", () => {
 });
 
 describe("continuous lap delta", () => {
-  const alex = Object.values(s.riders).find((r) => r.name === "Alex Turner")!;
-  const sessions = Object.values(s.sessions).filter((x) => x.riderId === alex.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
+  const joel = Object.values(s.riders).find((r) => r.name === "Joel Gaffey")!;
+  const sessions = Object.values(s.sessions).filter((x) => x.riderId === joel.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
   const bestLap = (sid: string) => Object.values(s.laps).filter((l) => l.sessionId === sid && l.valid).sort((a, b) => a.durationMs - b.durationMs)[0]!;
   const first = sessions[0]!, last = sessions[sessions.length - 1]!;
   const res = lapDelta(bacup, { points: demo.gps[last.id]!, lap: bestLap(last.id) }, { points: demo.gps[first.id]!, lap: bestLap(first.id) });

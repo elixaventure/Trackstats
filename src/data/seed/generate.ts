@@ -14,11 +14,14 @@ import { demoRoutes, SECTOR_PROFILES } from "./routes";
 import { geometryFor, lapGps, sectorDurations } from "./traces";
 
 type RouteKey = "bacup" | "woodland" | "sprint";
-interface Plan { rider: "alex" | "charlie"; route: RouteKey; daysAgo: number; cond: TrackCondition; best: number; laps: number; tag: "personal" | "shared1" | "shared2" | null; outlier?: boolean; notes?: string }
+interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; cond: TrackCondition; best: number; laps: number; tag: "personal" | "shared1" | "shared2" | null; outlier?: boolean; notes?: string }
 
 const DAY = 86400000;
 
-// Alex's Bacup bests (seconds) tell the product story: 2:16.84 → 2:08.42 in seven weeks.
+/** Bump when the sample data changes; devices still on demo data are refreshed automatically. */
+export const DEMO_VERSION = 2;
+
+// Joel's Bacup bests (seconds) tell the product story: 2:16.84 → 2:08.42 in seven weeks.
 const PLANS: Plan[] = [
   ...([
     [49, "dry", 136.84, 7, "shared1", "First time out with a timing tag."],
@@ -28,11 +31,11 @@ const PLANS: Plan[] = [
     [21, "dry", 132.12, 10, "personal", "Finally jumping the top double."], [17, "wet", 137.6, 6, "personal"],
     [14, "dry", 132.4, 9, "personal"], [10, "mixed", 135.0, 8, "personal"], [7, "dry", 132.55, 9, "personal"],
     [1, "dry", 128.42, 10, "personal", "Rollers flowing. Committed to the berm line."],
-  ] as const).map(([daysAgo, cond, best, laps, tag, notes], i): Plan => ({ rider: "alex", route: "bacup", daysAgo, cond, best, laps, tag, notes, outlier: i === 6 })),
+  ] as const).map(([daysAgo, cond, best, laps, tag, notes], i): Plan => ({ rider: "joel", route: "bacup", daysAgo, cond, best, laps, tag, notes, outlier: i === 6 })),
   ...([[41, "dry", 602.4], [27, "damp", 588.9], [20, "muddy", 611.0], [13, "dry", 571.3], [6, "dry", 566.0], [2, "dry", 561.8]] as const)
-    .map(([daysAgo, cond, best]): Plan => ({ rider: "alex", route: "woodland", daysAgo, cond, best, laps: 3, tag: null })),
+    .map(([daysAgo, cond, best]): Plan => ({ rider: "joel", route: "woodland", daysAgo, cond, best, laps: 3, tag: null })),
   ...([[34, "dry", 61.8], [20, "dry", 60.4], [6, "dry", 58.9]] as const)
-    .map(([daysAgo, cond, best]): Plan => ({ rider: "alex", route: "sprint", daysAgo, cond, best, laps: 6, tag: "personal" })),
+    .map(([daysAgo, cond, best]): Plan => ({ rider: "joel", route: "sprint", daysAgo, cond, best, laps: 6, tag: "personal" })),
   ...([[42, "wet", 168.3], [35, "damp", 161.2], [28, "muddy", 166.0], [14, "dry", 155.7], [7, "dry", 153.1]] as const)
     .map(([daysAgo, cond, best]): Plan => ({ rider: "charlie", route: "bacup", daysAgo, cond, best, laps: 6, tag: "shared2" })),
 ];
@@ -58,7 +61,7 @@ function lapTimes(plan: Plan, progress: number, rand: () => number): number[] {
 export function generateDemo(userId: string, now = Date.now()): { state: DbState; gps: Record<string, GpsPoint[]> } {
   const people = demoPeople(userId, now);
   const routes = demoRoutes(userId, now);
-  const riders: Record<string, RiderProfile> = { [people.alex.id]: people.alex, [people.charlie.id]: people.charlie };
+  const riders: Record<string, RiderProfile> = { [people.joel.id]: people.joel, [people.charlie.id]: people.charlie };
   for (const f of people.friends) riders[f.id] = f;
 
   const sessions: Session[] = [];
@@ -73,7 +76,7 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
   ordered.forEach((plan, idx) => {
     const rand = mulberry32(1000 + idx);
     const route: Route = routes[plan.route];
-    const rider = plan.rider === "alex" ? people.alex : people.charlie;
+    const rider = plan.rider === "joel" ? people.joel : people.charlie;
     const bike = plan.rider === "charlie" ? people.bikes.ktm85 : plan.route === "woodland" ? people.bikes.ktm350 : people.bikes.crf;
     const sessionId = stableUuid(`session:${plan.rider}:${plan.route}:${plan.daysAgo}`);
     const startAt = now - plan.daysAgo * DAY - (now % DAY) + (plan.rider === "charlie" ? 9.5 : 10.25) * 3600000 + Math.round(rand() * 1800000);
@@ -135,7 +138,7 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
     state: {
       schemaVersion: SCHEMA_VERSION,
       user: { id: userId, email: null, createdAt: now - 70 * DAY },
-      activeRiderId: people.alex.id,
+      activeRiderId: people.joel.id,
       riders,
       bikes: byId(Object.values(people.bikes)),
       groups: byId(Object.values(people.groups)),
@@ -147,7 +150,7 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
       laps: byId(laps),
       timingEvents: byId(events),
       leaderboard: byId(otherRiderEntries(routes, people.friends, now)),
-      settings: { simulateGps: false, simSpeed: 1, demoMode: true },
+      settings: { simulateGps: false, simSpeed: 1, demoMode: true, demoVersion: DEMO_VERSION },
     },
     gps,
   };

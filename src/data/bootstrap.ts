@@ -34,7 +34,13 @@ export function emptyState(userId: string, email: string | null): DbState {
 export async function bootstrap(): Promise<void> {
   await outbox.load();
   const existing = await loadState();
-  store.init(existing && existing.schemaVersion === SCHEMA_VERSION ? existing : await seedDemo());
+  const { DEMO_VERSION } = await import("./seed/generate");
+  const usable = existing && existing.schemaVersion === SCHEMA_VERSION;
+  // Devices still on sample data get the latest sample data; real accounts are never touched.
+  const staleDemo = usable && existing.settings.demoMode && existing.settings.demoVersion !== DEMO_VERSION;
+  if (usable && !staleDemo) { store.init(existing); return; }
+  if (staleDemo) await clearAll();
+  store.init(await seedDemo());
 }
 
 /** Wipe the device and start again with fresh demo data. */

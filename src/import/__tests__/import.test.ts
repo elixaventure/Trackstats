@@ -86,9 +86,9 @@ describe("GoPro GPMF", () => {
 // ---- watch / app exports ----
 const { state, gps } = generateDemo("u", Date.UTC(2026, 9, 4));
 const bacup = Object.values(state.routes).find((r) => r.name.startsWith("Bacup"))!;
-const alexSession = Object.values(state.sessions).filter((s) => s.routeId === bacup.id && s.riderId === state.activeRiderId).sort((a, b) => b.startedAt - a.startedAt)[0]!;
+const demoSession = Object.values(state.sessions).filter((s) => s.routeId === bacup.id && s.riderId === state.activeRiderId).sort((a, b) => b.startedAt - a.startedAt)[0]!;
 // Watches record about once a second.
-const trace = gps[alexSession.id]!.filter((_, i) => i % 1 === 0);
+const trace = gps[demoSession.id]!.filter((_, i) => i % 1 === 0);
 
 function toGpx(points: typeof trace) {
   return `<?xml version="1.0"?><gpx version="1.1" creator="Apple Watch"><trk><trkseg>${points.map((p) =>
@@ -128,7 +128,7 @@ describe("watch and app exports", () => {
     const matches = matchRoutes(routes, track!.points);
     expect(matches[0]!.route.id).toBe(bacup.id);
     const plan = buildImportedSession({ track: track!, route: bacup, riderId: "r1", bikeId: null, condition: "dry", notes: "", previousPbMs: null });
-    const original = Object.values(state.laps).filter((l) => l.sessionId === alexSession.id).sort((a, b) => a.lapNumber - b.lapNumber);
+    const original = Object.values(state.laps).filter((l) => l.sessionId === demoSession.id).sort((a, b) => a.lapNumber - b.lapNumber);
     // The demo trace starts just after the line and stops just before it, so the first
     // and last boundaries aren't in the file. Every boundary in between must be found.
     const boundaries = original.slice(0, -1).map((l) => l.startedAt + l.durationMs);
