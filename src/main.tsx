@@ -31,5 +31,13 @@ async function start() {
   root.render(<StrictMode><App /></StrictMode>);
 }
 
-registerSW({ immediate: true });
+// Check for a new version whenever the app comes back to the foreground (phones
+// keep PWAs open for days), not only on a cold start.
+registerSW({
+  immediate: true,
+  onRegisteredSW(_url, reg) {
+    if (!reg) return;
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") void reg.update(); });
+  },
+});
 void start();

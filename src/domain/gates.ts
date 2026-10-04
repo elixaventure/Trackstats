@@ -37,7 +37,7 @@ const ON_ROUTE_M = 30;
 /** Along-route travel needed to know which way round the rider is going. */
 const DIRECTION_TRAVEL_M = 60;
 /** A crossing is confirmed once the rider has carried on this far past it. */
-const CONFIRM_M = 30;
+const CONFIRM_M = 20;
 /** On a loop, a lap needs at least this share of the track since the last one. */
 const MIN_LAP_SHARE = 0.5;
 

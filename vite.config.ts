@@ -7,8 +7,12 @@ import { fileURLToPath, URL } from "node:url";
 // Public path the app is served from: "/" on Netlify/Cloudflare, "/<repo>/" on GitHub Pages.
 const base = process.env.BASE_PATH ?? "/";
 
+// Shown in Settings so testers can tell which version their phone is running.
+const build = `${(process.env.GITHUB_SHA ?? "local").slice(0, 7)} · ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`;
+
 export default defineConfig({
   base,
+  define: { __APP_BUILD__: JSON.stringify(build) },
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

@@ -81,6 +81,8 @@ export default function Settings() {
         <p className="text-sm text-muted">Timing hardware: only the built-in simulator is available. Its controls appear on the live ride screen when a pod timing mode is chosen.</p>
       </Card>
 
+      <p className="text-center font-mono text-xs text-muted">Version {__APP_BUILD__}</p>
+
       {db.settings.demoMode && (
         <Card className="space-y-3">
           <SectionTitle>Demo data</SectionTitle>
