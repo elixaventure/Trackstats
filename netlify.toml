@@ -1,5 +1,4 @@
-# Deploy the rider app as its own Netlify site with Base directory = rider-app.
-# (The repo-root netlify.toml publishes the static Bacup MX website.)
+# Netlify: build from the repo root.
 [build]
   command = "npm ci && npm run build"
   publish = "dist"

@@ -2,14 +2,13 @@
 
 **See exactly how much faster you're getting.** Lap timing and progression for motocross, enduro, private tracks, practice loops and sprint stages.
 
-It's a mobile-first React PWA, structured so the same codebase can be wrapped with Capacitor for iOS and Android later.
+It's a mobile-first React PWA (repo: `elixaventure/Trackstats`), structured so the same codebase can be wrapped with Capacitor for iOS and Android later.
 
 > "Splitline" is a placeholder name. Search for `APP_NAME` (`src/config/env.ts`) and the manifest in `vite.config.ts` to change it.
 
 ## Run it
 
 ```bash
-cd rider-app
 npm install
 npm run dev        # http://localhost:5173
 ```
@@ -154,20 +153,15 @@ supabase/migrations/  Postgres schema + Row Level Security.
 
 ## Deploying
 
-### GitHub Pages (free, simplest for testing)
-`.github/workflows/rider-app-pages.yml` publishes the repo as one GitHub Pages site:
-- the Bacup MX website at **https://elixaventure.github.io/Bacup-mx-track-/** (unchanged)
-- the rider app at **https://elixaventure.github.io/Bacup-mx-track-/app/**
+### GitHub Pages (free)
+`.github/workflows/pages.yml` lints, tests and builds the app on every push to `main`, then publishes it to **https://elixaventure.github.io/Trackstats/**.
 
-It lints, tests and builds the app on every push to `main` or the feature branch.
+One-time setup: **Settings → Pages → Source: GitHub Actions**, then **Actions → Publish to GitHub Pages → Run workflow** (or push any change).
 
-One-time setup: repo **Settings → Pages → Source: GitHub Actions**. This replaces "Deploy from a branch"; the website keeps its address because the workflow publishes it too. If the deploy is refused because of the branch, go to **Settings → Environments → github-pages → Deployment branches** and add the branch, or merge to `main`.
-
-The app is built with `BASE_PATH=/<repo>/app/`. Deep links work through a `404.html` redirect that the app reads on load.
+The build sets `BASE_PATH=/<repo>/` so links, the service worker and the installed-app settings work in that sub-folder. `404.html` is a copy of the app, so deep links work.
 
 ### Netlify / Cloudflare Pages
-
-Create a **separate** Netlify site from this repo with **Base directory = `rider-app`**. `rider-app/netlify.toml` builds it, and `public/_redirects` handles client-side routes. The repo-root site (the Bacup MX website) is unaffected.
+`netlify.toml` builds with `npm run build` and publishes `dist`. On Cloudflare Pages use build command `npm run build`, output `dist`, and env var `NODE_VERSION=22`. `public/_redirects` handles client-side routes on both.
 
 ## Moving to native (Capacitor)
 

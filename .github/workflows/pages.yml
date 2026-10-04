@@ -1,0 +1,65 @@
+# Lints, tests and builds the app, then publishes it to GitHub Pages:
+#   https://elixaventure.github.io/Trackstats/
+# One-time setup: Settings → Pages → Source: "GitHub Actions".
+name: Publish to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.pages.outputs.type }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Publish only once Pages is set to "GitHub Actions"; until then build and test only.
+      - id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          type=$(gh api "repos/${{ github.repository }}/pages" --jq .build_type 2>/dev/null || echo none)
+          echo "type=$type" >> "$GITHUB_OUTPUT"
+          if [ "$type" != "workflow" ]; then
+            echo "::notice title=Not published yet::Turn on Settings → Pages → Source: 'GitHub Actions', then re-run this workflow. Build and tests still run."
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+      # GitHub Pages has no URL rewrites: serving the app as the 404 page makes deep links work.
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.pages == 'workflow'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
