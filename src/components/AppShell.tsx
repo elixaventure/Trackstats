@@ -15,6 +15,7 @@ const NAV: { to: string; label: string; icon: IconName; end?: boolean }[] = [
 ];
 
 const MORE: { to: string; label: string; icon: IconName }[] = [
+  { to: "/import", label: "Import a ride", icon: "download" },
   { to: "/sessions", label: "Sessions", icon: "clock" },
   { to: "/leaderboards", label: "Leaderboards", icon: "trophy" },
   { to: "/achievements", label: "Achievements", icon: "award" },

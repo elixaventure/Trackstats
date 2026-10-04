@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateDemo } from "@/data/seed/generate";
-import { compareLaps, lapHasGps } from "../routeAnalysis";
+import { compareLaps, lapDelta, lapHasGps } from "../routeAnalysis";
 import { buildGeometry, gateLine, segmentIntersection, simplify } from "../geo";
 
 // The demo generator is deterministic, so it doubles as a realistic fixture.
@@ -52,5 +52,30 @@ describe("geometry", () => {
     expect(out.length).toBeLessThan(bacup.polyline.length);
     expect(out[0]).toEqual(bacup.polyline[0]);
     expect(out[out.length - 1]).toEqual(bacup.polyline[bacup.polyline.length - 1]);
+  });
+});
+
+describe("continuous lap delta", () => {
+  const alex = Object.values(s.riders).find((r) => r.name === "Alex Turner")!;
+  const sessions = Object.values(s.sessions).filter((x) => x.riderId === alex.id && x.routeId === bacup.id).sort((a, b) => a.startedAt - b.startedAt);
+  const bestLap = (sid: string) => Object.values(s.laps).filter((l) => l.sessionId === sid && l.valid).sort((a, b) => a.durationMs - b.durationMs)[0]!;
+  const first = sessions[0]!, last = sessions[sessions.length - 1]!;
+  const res = lapDelta(bacup, { points: demo.gps[last.id]!, lap: bestLap(last.id) }, { points: demo.gps[first.id]!, lap: bestLap(first.id) });
+
+  it("ends at the real lap-time difference", () => {
+    const end = res.points[res.points.length - 1]!;
+    const lapDiff = bestLap(last.id).durationMs - bestLap(first.id).durationMs;
+    expect(Math.abs(end.deltaMs - lapDiff)).toBeLessThan(400);
+  });
+
+  it("colours the stretch where the rider actually improved green", () => {
+    const rollers = bacup.sectors.find((x) => x.name === "Rollers")!;
+    const prevEnd = bacup.sectors[bacup.sectors.indexOf(rollers) - 1]!.endDistanceM;
+    const inRollers = res.segments.filter((g) => g.toM > prevEnd && g.fromM < rollers.endDistanceM);
+    const greenM = inRollers.filter((g) => g.verdict === "faster").reduce((a, g) => a + Math.min(g.toM, rollers.endDistanceM) - Math.max(g.fromM, prevEnd), 0);
+    expect(greenM / (rollers.endDistanceM - prevEnd)).toBeGreaterThan(0.5);
+    // Segments tile the whole lap with no gaps.
+    expect(res.segments[0]!.fromM).toBe(0);
+    for (let i = 1; i < res.segments.length; i++) expect(res.segments[i]!.fromM).toBe(res.segments[i - 1]!.toM);
   });
 });

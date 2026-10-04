@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, LinkButton } from "@/components/Button";
 import { Card, SectionTitle } from "@/components/Card";
@@ -16,6 +16,9 @@ import { formatDateTime, formatDistance, formatDuration, formatLap } from "@/dom
 import { CONDITION_LABEL, RIDE_TYPE_LABEL, type TimingSource } from "@/domain/types";
 import { useDb } from "@/hooks/useDb";
 import { useGps } from "@/hooks/useGps";
+import { VideoSync } from "@/components/video/VideoSync";
+import type { GpsPoint } from "@/domain/types";
+import { KIND_LABEL } from "@/import/types";
 
 const SOURCE_NOTE: Record<TimingSource, string> = {
   transponder: "Laps timed by transponder (hardware timestamps).",
@@ -31,6 +34,14 @@ export default function SessionResults() {
   const laps = useMemo(() => (session ? sessionLaps(db, session.id) : []), [db, session]);
   const gps = useGps(session?.hasGps ? session.id : null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [riderAt, setRiderAt] = useState<GpsPoint | null>(null);
+  const onPosition = useCallback((p: GpsPoint | null) => setRiderAt(p), []);
+  const routePoly = session?.routeId ? db.routes[session.routeId]?.polyline : undefined;
+  const mapLines = useMemo(() => [
+    ...(routePoly ? [{ id: "route", coords: routePoly.map((p) => [p[0], p[1]] as [number, number]), color: "#8c968f", width: 6, opacity: 0.35 }] : []),
+    { id: "trace", coords: gps.points.map((p) => [p.lng, p.lat] as [number, number]), color: "#ffd21f", width: 2.5, opacity: 0.85 },
+  ], [routePoly, gps.points]);
+  const mapMarkers = useMemo(() => (riderAt ? [{ id: "rider", lngLat: [riderAt.lng, riderAt.lat] as [number, number], label: "You", color: "#ffffff" }] : []), [riderAt]);
 
   if (!session) return <EmptyState title="Session not found" action={<LinkButton to="/sessions">All sessions</LinkButton>} />;
   const s = session.summary;
@@ -108,12 +119,13 @@ export default function SessionResults() {
         <Card>
           <SectionTitle action={route && <Link to={`/routes/${route.id}?session=${session.id}`} className="text-sm font-semibold text-plate">Section analysis →</Link>}>GPS trace</SectionTitle>
           {gps.loading ? <div className="h-72 animate-pulse rounded-2xl bg-surface-2" /> : gps.points.length > 1 ? (
-            <RouteMap className="h-72 md:h-96" lines={[
-              ...(route ? [{ id: "route", coords: route.polyline.map((p) => [p[0], p[1]] as [number, number]), color: "#8c968f", width: 6, opacity: 0.35 }] : []),
-              { id: "trace", coords: gps.points.map((p) => [p.lng, p.lat] as [number, number]), color: "#ffd21f", width: 2.5, opacity: 0.85 },
-            ]} />
+            <RouteMap className="h-72 md:h-96" lines={mapLines} markers={mapMarkers} />
           ) : <p className="text-muted">No usable GPS points were recorded.</p>}
           {route && <p className="mt-2 text-sm text-muted">Compare where you gained and lost time against your PB or previous ride in section analysis.</p>}
+          {session.importInfo && (
+            <p className="mt-2 text-sm text-muted">Imported from {KIND_LABEL[session.importInfo.kind]}{session.importInfo.device ? ` (${session.importInfo.device})` : ""} · {session.importInfo.rateHz} GPS fixes/second · {session.importInfo.fileNames.join(", ")}</p>
+          )}
+          {session.importInfo?.videos.length ? <div className="mt-4"><VideoSync videos={session.importInfo.videos} points={gps.points} onPosition={onPosition} /></div> : null}
         </Card>
       )}
 

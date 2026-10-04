@@ -26,8 +26,36 @@ Other commands:
 | --- | --- |
 | `npm run build` | Type-check (app + tests) and build to `dist/` |
 | `npm run preview` | Serve the production build (service worker active) |
-| `npm test` | Unit tests: lap engine, GPS gates, stats, section analysis, schema/sync contract |
+| `npm test` | Unit tests: lap engine, GPS gates, stats, section analysis, file importers, schema/sync contract |
 | `npm run lint` | ESLint |
+
+### Importing rides (GoPro, Garmin, Strava, Apple Watch)
+
+**Home → Import GoPro / watch** (or `/import`). The app:
+1. Reads the GPS track from the file.
+2. Matches it to a saved route by where you rode.
+3. Finds laps from the start/finish line crossings.
+4. Shows where you gained and lost time, green and red all the way round the lap, plus a "gap around the lap" chart.
+
+| Source | What to select | GPS detail |
+| --- | --- | --- |
+| GoPro HERO5–11, HERO13, MAX, Fusion | The `.MP4` files (select every chapter of a long recording). GPS must be on in the camera. | 10–18 fixes/s: separates corners |
+| GoPro HERO12 | **Not supported: the HERO12 has no GPS chip.** The app says so. | — |
+| Garmin | Garmin Connect "Export Original" `.zip` (contains `.fit`), or `.fit`/`.gpx`/`.tcx` | ~1 fix/s |
+| Strava | Activity → Export GPX | ~1 fix/s |
+| Apple Watch | A GPX export from an app such as HealthFit or RunGap | ~1 fix/s |
+
+How it works:
+- GoPro videos are read in place on the device. Only the telemetry bytes are read; multi-GB files are never loaded into memory, and footage is never uploaded.
+- GoPro video can be played back with a dot moving on the coloured map. In a later visit the rider re-selects the file, because browsers can't keep access to local files between visits.
+- If no route matches, "Create a route from this ride" picks out one lap for the rider to trim and save.
+
+How the colouring works (`lapDelta` in `src/domain/routeAnalysis.ts`):
+1. The running time gap to the reference lap is sampled every 10 m and smoothed over 50 m.
+2. A stretch turns green or red only when the gain or loss over 80, 160 or 240 m beats 1.5× the combined GPS uncertainty at both ends. Otherwise it stays neutral.
+3. Fragments shorter than 30 m are treated as noise.
+
+So 10–18 fixes/s GoPro data resolves individual corners, while 1 fix/s watch data only shows bigger losses over longer stretches. The UI says which applies.
 
 ### Trying the timing without hardware
 
@@ -52,6 +80,7 @@ src/
   session/     RideEngine: runs a ride on-device (events → laps, GPS, gates, crash recovery).
   data/        Local-first store (IndexedDB), actions, selectors, demo-data generator.
   sync/        Outbox queue + Supabase sync engine + model↔row mapping.
+  import/      GoPro (MP4 + GPMF telemetry), GPX, TCX, FIT and Garmin .zip readers; route matching; lap detection.
   components/  UI building blocks, map (MapLibre, lazy), charts (Recharts), live-ride widgets.
   pages/       One file per screen.
 supabase/migrations/  Postgres schema + Row Level Security.

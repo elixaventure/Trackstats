@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { BiggestChanges } from "@/components/analysis/BiggestChanges";
+import { DeltaChart } from "@/components/analysis/DeltaChart";
 import { SectionTable, VERDICT_COLOR } from "@/components/analysis/SectionTable";
 import { useSectionAnalysis } from "@/components/analysis/useSectionAnalysis";
 import { Button, LinkButton } from "@/components/Button";
@@ -19,6 +21,8 @@ import { formatDate, formatDistance, formatLap } from "@/domain/time";
 import { CONDITION_LABEL, RIDE_TYPE_LABEL } from "@/domain/types";
 import { useDb } from "@/hooks/useDb";
 import { useGps } from "@/hooks/useGps";
+import { VideoSync } from "@/components/video/VideoSync";
+import type { GpsPoint, Session } from "@/domain/types";
 
 type RefKind = "pb" | "previous" | "selected";
 
@@ -56,9 +60,13 @@ export default function RouteDetail() {
   const lines = useMemo<MapLine[]>(() => {
     if (!route) return [];
     const base: MapLine = { id: "route", coords: route.polyline.map((p) => [p[0], p[1]]), color: "#8c968f", width: 7, opacity: 0.3 };
+    // Green/red all the way round when there's a reference lap; named sections otherwise.
+    if (analysis.delta) return [base, ...analysis.delta.segments.map((s, i) => ({ id: `d${i}`, coords: s.coords, color: VERDICT_COLOR[s.verdict], width: 6 }))];
     if (!analysis.sections.length) return [{ ...base, color: "#ffd21f", opacity: 0.9, width: 4 }];
     return [base, ...analysis.sections.map((s, i) => ({ id: `s${i}`, coords: s.coords, color: VERDICT_COLOR[s.verdict], width: 6 }))];
-  }, [route, analysis.sections]);
+  }, [route, analysis.sections, analysis.delta]);
+  const [riderAt, setRiderAt] = useState<GpsPoint | null>(null);
+  const onPosition = useCallback((p: GpsPoint | null) => setRiderAt(p), []);
   const markers = useMemo(() => {
     if (!route || route.polyline.length < 2) return [];
     const g = buildGeometry(route.polyline);
@@ -67,6 +75,7 @@ export default function RouteDetail() {
       ...route.sectors.slice(0, -1).map((s) => ({ id: s.id, lngLat: pointAtDistance(g, s.endDistanceM).lngLat, label: s.name, color: "#f3f5ef" })),
     ];
   }, [route]);
+  const allMarkers = useMemo(() => (riderAt ? [...markers, { id: "rider", lngLat: [riderAt.lng, riderAt.lat] as [number, number], label: "You", color: "#ffffff" }] : markers), [markers, riderAt]);
 
   if (!route) return <EmptyState title="Route not found" action={<LinkButton to="/routes">All routes</LinkButton>} />;
   const mine = route.createdByUserId === db.user.id;
@@ -98,7 +107,7 @@ export default function RouteDetail() {
         </div>
       )}
 
-      <RouteMap className="h-72 md:h-[28rem]" lines={lines} markers={markers} />
+      <RouteMap className="h-72 md:h-[28rem]" lines={lines} markers={allMarkers} />
       {analysis.sections.length > 0 && (
         <div className="flex flex-wrap gap-4 text-sm text-muted" aria-label="Map legend">
           {(["faster", "equal", "slower", "unknown"] as const).map((v) => (
@@ -136,15 +145,30 @@ export default function RouteDetail() {
                   <Stat label="Gained" value={gained ? <Delta ms={gained} unit={false} /> : "—"} />
                   <Stat label="Lost" value={lost ? <Delta ms={lost} unit={false} /> : "—"} />
                 </div>
+                {analysis.delta && (
+                  <>
+                    <BiggestChanges route={route} segments={analysis.delta.segments} />
+                    <DeltaChart points={analysis.delta.points} sectors={route.sectors} refLabel={refLabel} />
+                  </>
+                )}
+                <h3 className="pt-2 font-mono text-xs font-semibold uppercase tracking-[0.12em] text-muted">By section</h3>
                 <SectionTable sections={analysis.sections} refLabel={refLabel} />
               </>
             )}
           <p className="rounded-xl bg-surface-2 p-3 text-sm text-muted">
-            Section times come from phone GPS (±3–10 m, one fix a second), so each comes with an uncertainty and differences inside it show as “about equal”.
+            {gpsSourceText(cur)} Every comparison carries an uncertainty, and differences inside it show as “about equal” rather than green or red.
             Whole-lap times come from your timing source{cur?.transponderId ? " (transponder)" : ""} and aren't affected.
           </p>
         </Card>
       )}
+
+      {cur?.importInfo?.videos.length ? (
+        <Card>
+          <SectionTitle>Watch it back</SectionTitle>
+          <p className="mb-3 text-sm text-muted">The white dot on the map follows your GoPro footage.</p>
+          <VideoSync videos={cur.importInfo.videos} points={curGps.points} onPosition={onPosition} />
+        </Card>
+      ) : null}
 
       <Card>
         <SectionTitle>Timing set-up</SectionTitle>
@@ -156,4 +180,11 @@ export default function RouteDetail() {
       </Card>
     </div>
   );
+}
+
+function gpsSourceText(s: Session | null): string {
+  const info = s?.importInfo;
+  if (!info) return "Positions come from phone GPS (±3–10 m, one fix a second).";
+  const rate = info.rateHz >= 5 ? `${Math.round(info.rateHz)} fixes a second, fine enough to separate corners` : "about one fix a second, so only bigger differences show";
+  return `Positions come from ${info.device ?? "the imported file"} (${rate}).`;
 }

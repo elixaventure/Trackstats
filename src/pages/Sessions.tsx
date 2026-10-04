@@ -5,6 +5,7 @@ import { RiderSwitcher } from "@/components/RiderSwitcher";
 import { SessionRow } from "@/components/SessionRow";
 import { EmptyState } from "@/components/States";
 import { LinkButton } from "@/components/Button";
+import { Icon } from "@/components/Icon";
 import { SelectField } from "@/components/Field";
 import { activeRider, riderSessions } from "@/data/selectors";
 import { useDb } from "@/hooks/useDb";
@@ -18,7 +19,7 @@ export default function Sessions() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Sessions" eyebrow={rider.name} />
+      <PageHeader title="Sessions" eyebrow={rider.name} action={<LinkButton to="/import"><Icon name="download" className="size-5" /> Import</LinkButton>} />
       <RiderSwitcher />
       {routeIds.length > 1 && (
         <SelectField label="Route" value={routeId} onChange={(e) => setRouteId(e.target.value)}>

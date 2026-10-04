@@ -146,7 +146,8 @@ create table public.sessions (
   ended_at timestamptz,
   summary jsonb,                        -- denormalised SessionSummary for fast lists
   has_gps boolean not null default false,
-  simulated boolean not null default false -- recorded with the simulator; never ranked
+  simulated boolean not null default false, -- recorded with the simulator; never ranked
+  import_info jsonb                     -- set for rides imported from GoPro/GPX/FIT/TCX files
 );
 create index on public.sessions (rider_id, started_at desc);
 create index on public.sessions (route_id, route_config_version);

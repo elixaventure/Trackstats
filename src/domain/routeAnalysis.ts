@@ -146,3 +146,101 @@ export function lapHasGps(points: GpsPoint[], lap: Lap): boolean {
   const n = points.filter((p) => p.t >= lap.startedAt && p.t <= end && p.accuracyM <= 30).length;
   return n >= Math.max(5, (lap.durationMs / 1000) * 0.3);
 }
+
+// ---- Continuous delta: green/red all the way round the lap ----
+
+export interface DeltaPoint { d: number; deltaMs: number; uMs: number }
+export interface ColourSegment { fromM: number; toM: number; coords: [number, number][]; verdict: Verdict; changeMs: number }
+
+const STEP_M = 10;
+/**
+ * Gains/losses are judged over several stretch lengths: 80 m catches a single
+ * corner when the GPS is good (GoPro); longer stretches catch gradual losses that
+ * coarse 1 Hz watch GPS can only resolve over distance.
+ */
+const WINDOWS_M = [80, 160, 240];
+/** A change must beat the combined GPS uncertainty by this factor to be coloured. */
+const CONFIDENCE = 1.5;
+const MIN_CHANGE_MS = 100;
+/** Moving-average half-width for the running gap: irons out single-fix GPS wobble. */
+const SMOOTH_M = 25;
+/** Coloured stretches shorter than this are treated as noise and shown as "equal". */
+const MIN_STRETCH_M = 30;
+
+/**
+ * Running time difference around the lap (current minus reference, negative =
+ * ahead), sampled every 10 m, and the track split into coloured stretches.
+ * A stretch is green/red only when the time gained/lost over ~80 m beats the
+ * combined GPS uncertainty at both ends; otherwise it's "equal". So a 1 Hz watch
+ * shows only big differences while 10–18 Hz GoPro GPS resolves individual corners.
+ */
+export function lapDelta(
+  route: Route,
+  current: { points: GpsPoint[]; lap: Lap },
+  reference: { points: GpsPoint[]; lap: Lap },
+): { points: DeltaPoint[]; segments: ColourSegment[] } {
+  const g = buildGeometry(route.polyline);
+  const tlA = lapTimeline(g, current.points, current.lap);
+  const tlB = lapTimeline(g, reference.points, reference.lap);
+  const raw: DeltaPoint[] = [];
+  for (let d = 0; d <= g.length; d += STEP_M) {
+    const a = timeAt(tlA, d), b = timeAt(tlB, d);
+    if (!a || !b) continue;
+    raw.push({ d, deltaMs: a.t - current.lap.startedAt - (b.t - reference.lap.startedAt), uMs: Math.hypot(a.u, b.u) });
+  }
+  // Smooth, but pin both ends: the gap at the line is exact (lap timing), not GPS-derived.
+  const points = raw.map((p, i) => {
+    if (i === 0 || i === raw.length - 1) return p;
+    const near = raw.filter((q) => Math.abs(q.d - p.d) <= SMOOTH_M);
+    return { ...p, deltaMs: near.reduce((a, q) => a + q.deltaMs, 0) / near.length };
+  });
+
+  const at = (d: number) => {
+    let best: DeltaPoint | null = null;
+    for (const p of points) if (!best || Math.abs(p.d - d) < Math.abs(best.d - d)) best = p;
+    return best;
+  };
+  const steps: { fromM: number; toM: number; verdict: Verdict; changeMs: number }[] = [];
+  for (let d = 0; d < g.length; d += STEP_M) {
+    const mid = d + STEP_M / 2;
+    let verdict: Verdict = "unknown";
+    for (const w of WINDOWS_M) {
+      const lo = at(Math.max(0, mid - w / 2)), hi = at(Math.min(g.length, mid + w / 2));
+      if (!lo || !hi || hi.d <= lo.d) continue;
+      const change = hi.deltaMs - lo.deltaMs;
+      const threshold = Math.max(MIN_CHANGE_MS, CONFIDENCE * Math.hypot(lo.uMs, hi.uMs));
+      if (Math.abs(change) > threshold) { verdict = change < 0 ? "faster" : "slower"; break; } // shortest convincing window wins
+      verdict = "equal";
+    }
+    steps.push({ fromM: d, toM: Math.min(g.length, d + STEP_M), verdict, changeMs: 0 });
+  }
+
+  // Merge neighbouring steps with the same verdict into map-friendly stretches,
+  // then demote stretches too short to trust and merge again.
+  const merge = (xs: typeof steps) => {
+    const out: typeof steps = [];
+    for (const s of xs) {
+      const last = out[out.length - 1];
+      if (last && last.verdict === s.verdict) last.toM = s.toM;
+      else out.push({ ...s });
+    }
+    return out;
+  };
+  const short = (s: { fromM: number; toM: number }) => s.toM - s.fromM < MIN_STRETCH_M;
+  const coloured = (v: Verdict) => v === "faster" || v === "slower";
+  let cleaned = merge(steps);
+  // A short neutral gap inside one coloured stretch belongs to it…
+  cleaned = merge(cleaned.map((s, i) => {
+    const prev = cleaned[i - 1], next = cleaned[i + 1];
+    return !coloured(s.verdict) && short(s) && prev && next && coloured(prev.verdict) && prev.verdict === next.verdict ? { ...s, verdict: prev.verdict } : s;
+  }));
+  // …and a short coloured blip on its own is noise.
+  cleaned = cleaned.map((s) => (coloured(s.verdict) && short(s) ? { ...s, verdict: "equal" as Verdict } : s));
+  // Each stretch reports the time actually gained or lost across it.
+  const segments: ColourSegment[] = merge(cleaned).map((s) => ({
+    ...s,
+    changeMs: (at(s.toM)?.deltaMs ?? 0) - (at(s.fromM)?.deltaMs ?? 0),
+    coords: sectionCoords(g, { name: "", fromM: s.fromM, toM: s.toM }),
+  }));
+  return { points, segments };
+}

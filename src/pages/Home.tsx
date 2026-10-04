@@ -48,9 +48,14 @@ export default function Home() {
         </Card>
       )}
 
-      <LinkButton to="/ride" variant="primary" size="xl" className="w-full">
-        <Icon name="ride" className="size-8" /> Start ride
-      </LinkButton>
+      <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
+        <LinkButton to="/ride" variant="primary" size="xl" className="w-full">
+          <Icon name="ride" className="size-8" /> Start ride
+        </LinkButton>
+        <LinkButton to="/import" size="xl" className="w-full">
+          <Icon name="download" className="size-7" /> Import GoPro / watch
+        </LinkButton>
+      </div>
 
       {main ? (
         <Card>

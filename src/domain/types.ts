@@ -156,8 +156,20 @@ export interface Session {
   hasGps: boolean;
   /** Recorded with the timing or GPS simulator. Never ranked on leaderboards. */
   simulated?: boolean;
+  /** Set when the session came from a file (GoPro, watch, Strava…) rather than live timing. */
+  importInfo?: ImportInfo | null;
   /** Demo rows are never pushed to the cloud. */
   isDemo?: boolean;
+}
+
+export interface ImportInfo {
+  kind: "gopro" | "gpx" | "fit" | "tcx";
+  fileNames: string[];
+  device: string | null;
+  /** GPS fixes per second in the source (GoPro 10–18, watches ~1). */
+  rateHz: number;
+  /** GoPro chapters, positioned on the GPS clock, for synced playback. */
+  videos: { fileName: string; startAt: number; durationMs: number }[];
 }
 
 export interface SessionSummary {

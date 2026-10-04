@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 const StartRide = lazy(() => import("./pages/StartRide"));
+const ImportRide = lazy(() => import("./pages/Import"));
 const LiveRide = lazy(() => import("./pages/LiveRide"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const SessionResults = lazy(() => import("./pages/SessionResults"));
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "ride", element: s(<StartRide />) },
+      { path: "import", element: s(<ImportRide />) },
       { path: "sessions", element: s(<Sessions />) },
       { path: "sessions/:id", element: s(<SessionResults />) },
       { path: "sessions/:id/share", element: s(<ShareCard />) },
