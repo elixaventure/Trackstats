@@ -233,6 +233,7 @@ async function holdFinish(page) {
       await go(a, `ride?route=${routeId}`);
       await a.getByRole("button", { name: "Start session" }).click();
       await a.waitForURL(/ride\/live/);
+      await a.getByText(/GPS (good|fair)/).waitFor({ timeout: 20000 }); // like a rider: wait for GPS before setting off
       // Sit on the line for a few seconds (GPS wobbles over it), then ride two laps the opposite way.
       for (let i = 0; i < 5; i++) { await A.ctx.setGeolocation(at(i % 2 ? 3 : perimeter - 3)); await a.waitForTimeout(1000); }
       const back = async (from, to, speed) => { for (let d = from; d > to; d -= speed) { await A.ctx.setGeolocation(at(((d % perimeter) + perimeter) % perimeter)); await a.waitForTimeout(1000); } };

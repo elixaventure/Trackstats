@@ -87,7 +87,7 @@ export default function LiveRide() {
       </div>
 
       <section aria-live="polite" className="mt-2 flex-1">
-        <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted">{live.openSince ? `Lap ${laps.length + 1}` : laps.length ? "Waiting for next crossing" : "Cross the start line"}</div>
+        <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted">{live.openSince ? `Lap ${laps.length + 1}` : laps.length ? "Waiting for next crossing" : isGps && snap.gps.state === "searching" ? "Waiting for GPS: hold on before setting off" : "Ride through the start line to start timing"}</div>
         <div className="font-mono text-[clamp(4.5rem,22vw,9rem)] font-bold leading-none tnum">
           {live.openSince ? formatClock(now - live.openSince) : "—:——"}
         </div>

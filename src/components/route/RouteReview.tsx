@@ -6,6 +6,7 @@ import { RouteMap } from "@/components/map/RouteMap";
 import { Segmented } from "@/components/Segmented";
 import { saveRoute } from "@/data/actions";
 import { store } from "@/data/store";
+import { analyseShape, autoSections, cornerAt, finalSectionName, numberFrom, suggestStart } from "@/domain/corners";
 import { buildGeometry, elevationGain, haversineM, pointAtDistance, rotateLoop, simplify, subLine } from "@/domain/geo";
 import { formatDistance } from "@/domain/time";
 import { RIDE_TYPE_LABEL, isLoopType, type LngLatAlt, type RideType, type Route, type TimingGate } from "@/domain/types";
@@ -26,11 +27,19 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
   const [type, setType] = useState<RideType>(gap < 40 ? "mx_circuit" : "point_to_point");
   const [startM, setStartM] = useState(0);
   const [finishM, setFinishM] = useState(g.length);
-  const [sectors, setSectors] = useState<DraftSector[]>([]);
+  const loopType = isLoopType(type);
+  const shape = useMemo(() => analyseShape(g, loopType), [g, loopType]);
+  // Sections are marked automatically from the corners; riders can rename, remove or add.
+  const markSections = (from: number) => autoSections(shape, from, g.length, loopType).map((x) => ({ id: uuid(), name: x.name, atM: x.atM }));
+  const [sectors, setSectors] = useState<DraftSector[]>(() => markSections(0));
   const [sectorAt, setSectorAt] = useState(Math.round(g.length / 2));
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const loop = isLoopType(type);
+  const loop = loopType;
+  const startCorner = loop ? cornerAt(shape, startM, g.length, true) : null;
+  const betterStart = startCorner ? suggestStart(shape) : null;
+  const numbered = numberFrom(shape, startM, g.length, loop);
+  const moveStart = (m: number) => { setStartM(m); setSectors(markSections(m)); };
 
   // Distances measured on the final route (after moving the start line).
   const rel = (atM: number) => (loop ? (atM - startM + g.length) % g.length : atM - startM);
@@ -41,6 +50,7 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
     { id: "start", lngLat: pointAtDistance(g, startM).lngLat, label: "Start", color: "#3ddc84" },
     ...(loop ? [] : [{ id: "finish", lngLat: pointAtDistance(g, finishM).lngLat, label: "Finish", color: "#ff6157" }]),
     ...sectors.map((s) => ({ id: s.id, lngLat: pointAtDistance(g, s.atM).lngLat, label: s.name, color: "#f3f5ef" })),
+    ...numbered.corners.map((c) => ({ id: `corner-${c.number}`, lngLat: pointAtDistance(g, c.apexM).lngLat, label: `T${c.number}`, color: "#ffd21f" })),
   ];
 
   const save = () => {
@@ -50,7 +60,7 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
       ? [{ role: "start_finish", distanceM: 0, halfWidthM: 20 }]
       : [{ role: "start", distanceM: 0, halfWidthM: 20 }, { role: "finish", distanceM: Math.round(finalLength), halfWidthM: 20 }];
     const routeSectors = valid.length
-      ? [...valid.map((s) => ({ id: s.id, name: s.name, endDistanceM: Math.round(s.rel) })), { id: uuid(), name: "To finish", endDistanceM: Math.round(finalLength) }]
+      ? [...valid.map((s) => ({ id: s.id, name: s.name, endDistanceM: Math.round(s.rel) })), { id: uuid(), name: finalSectionName(shape, valid.map((v) => ({ atM: v.atM, name: v.name })), startM, g.length, loop), endDistanceM: Math.round(finalLength) }]
       : [];
     const r: Route = {
       id: uuid(), name: name.trim(), routeType: type, isLoop: loop, createdByUserId: store.getState().user.id,
@@ -78,12 +88,23 @@ export function RouteReview({ raw, onDiscard, onSaved }: { raw: LngLatAlt[]; onD
       <Card className="space-y-4">
         <SectionTitle>{loop ? "Start/finish line" : "Start and finish"}</SectionTitle>
         <Slider label={loop ? "Start/finish position" : "Start"} value={startM} max={loop ? g.length : finishM - 20} onChange={setStartM} />
+        {startCorner && betterStart != null && (
+          <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3">
+            <p className="text-sm text-warn">The start/finish line is in a corner (T{numbered.corners.find((c) => c.apexM === startCorner.apexM)?.number ?? "?"}). Laps are timed more accurately on a straight: you're faster there and everyone crosses it on the same line.</p>
+            <Button onClick={() => moveStart(betterStart)}>Move it to the middle of the longest straight</Button>
+          </div>
+        )}
         {!loop && <Slider label="Finish" value={finishM} min={startM + 20} max={g.length} onChange={setFinishM} />}
       </Card>
 
       <Card className="space-y-3">
-        <SectionTitle>Sectors (optional)</SectionTitle>
-        <p className="text-sm text-muted">Split the track into named sections, e.g. “Woodland Section”, for sector times and section analysis.</p>
+        <SectionTitle>Sections</SectionTitle>
+        <p className="text-sm text-muted">
+          {shape.corners.length
+            ? `Found ${shape.corners.length} corner${shape.corners.length === 1 ? "" : "s"} (T1–T${shape.corners.length} on the map) and ${shape.straights.length} straight${shape.straights.length === 1 ? "" : "s"}. Sections are split mid-straight, so each one is a corner or a run of corners. Rename, remove or add your own.`
+            : "No clear corners found. Add splits yourself if you want section times."}
+        </p>
+        {shape.corners.length > 0 && <Button variant="ghost" className="min-h-11 px-0 text-sm text-plate" onClick={() => setSectors(markSections(startM))}>Mark sections automatically again</Button>}
         <Slider label="Sector split at" value={sectorAt} max={g.length} onChange={setSectorAt} />
         <Button onClick={() => setSectors([...sectors, { id: uuid(), name: `Sector ${sectors.length + 1}`, atM: sectorAt }])}>Add split here</Button>
         {sectors.map((s, i) => (
