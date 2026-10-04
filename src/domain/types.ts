@@ -163,13 +163,13 @@ export interface Session {
 }
 
 export interface ImportInfo {
-  kind: "gopro" | "gpx" | "fit" | "tcx";
+  kind: "gopro" | "insta360" | "gpx" | "fit" | "tcx";
   fileNames: string[];
   device: string | null;
   /** GPS fixes per second in the source (GoPro 10–18, watches ~1). */
   rateHz: number;
   /** GoPro chapters, positioned on the GPS clock, for synced playback. */
-  videos: { fileName: string; startAt: number; durationMs: number }[];
+  videos: { fileName: string; startAt: number; durationMs: number; approxSync?: boolean }[];
 }
 
 export interface SessionSummary {

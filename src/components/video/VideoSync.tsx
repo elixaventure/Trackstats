@@ -21,6 +21,8 @@ export function VideoSync({ videos, points, onPosition }: { videos: ImportInfo["
   const [file, setFile] = useState<File | null>(() => recallVideo(videos[0]?.fileName ?? ""));
   const [mismatch, setMismatch] = useState<string | null>(null);
   const [now, setNow] = useState<{ speed: number | null; at: number } | null>(null);
+  /** Manual sync correction (ms) for cameras whose clock isn't tied to GPS. */
+  const [nudge, setNudge] = useState(0);
   const video = useRef<HTMLVideoElement>(null);
   const inputId = useId();
   const meta = videos[index]!;
@@ -36,7 +38,7 @@ export function VideoSync({ videos, points, onPosition }: { videos: ImportInfo["
       const ts = performance.now();
       if (ts - last > 200) {
         last = ts;
-        const p = fixAt(points, meta.startAt + v.currentTime * 1000);
+        const p = fixAt(points, meta.startAt + nudge + v.currentTime * 1000);
         onPosition(p);
         setNow(p ? { speed: p.speedMps, at: v.currentTime } : null);
       }
@@ -47,7 +49,7 @@ export function VideoSync({ videos, points, onPosition }: { videos: ImportInfo["
     v.addEventListener("seeked", tick);
     v.addEventListener("loadeddata", tick);
     return () => { cancelAnimationFrame(raf); v.removeEventListener("play", start); v.removeEventListener("seeked", tick); v.removeEventListener("loadeddata", tick); };
-  }, [url, points, meta.startAt, onPosition]);
+  }, [url, points, meta.startAt, nudge, onPosition]);
 
   const pick = (f: File | undefined) => {
     if (!f) return;
@@ -71,12 +73,21 @@ export function VideoSync({ videos, points, onPosition }: { videos: ImportInfo["
         <>
           <video ref={video} src={url} controls playsInline className="w-full rounded-2xl bg-black" />
           {now && <p className="font-mono text-sm text-muted">{formatClock(now.at * 1000)} · {now.speed != null ? `${Math.round(now.speed * 3.6)} km/h` : "—"}</p>}
+          {meta.approxSync && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted">Sync is approximate. If the dot is ahead or behind the footage, nudge it:</span>
+              {[-1000, -200, 200, 1000].map((d) => (
+                <button key={d} type="button" onClick={() => setNudge((n) => n + d)} className="min-h-11 rounded-lg border border-line px-3 font-mono">{d > 0 ? "+" : "−"}{Math.abs(d) / 1000}s</button>
+              ))}
+              <span className="font-mono text-muted">{nudge >= 0 ? "+" : "−"}{(Math.abs(nudge) / 1000).toFixed(1)}s</span>
+            </div>
+          )}
         </>
       ) : (
         <div className="rounded-2xl border border-dashed border-line p-4">
           <p className="mb-3 text-sm text-muted">Select <span className="font-mono text-ink">{meta.fileName}</span> from your phone or computer to watch it with the map. It stays on this device.</p>
           <label htmlFor={inputId} className="inline-flex min-h-12 cursor-pointer items-center rounded-xl bg-plate px-4 font-semibold text-plate-ink">Choose video</label>
-          <input id={inputId} type="file" accept="video/mp4,.mp4,.MP4" className="sr-only" onChange={(e) => pick(e.target.files?.[0])} />
+          <input id={inputId} type="file" accept="video/mp4,.mp4,.MP4,.insv" className="sr-only" onChange={(e) => pick(e.target.files?.[0])} />
         </div>
       )}
       {mismatch && <p className="text-sm text-warn">{mismatch}</p>}

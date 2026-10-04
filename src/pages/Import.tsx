@@ -33,7 +33,7 @@ export default function Import() {
   const onFiles = async (list: FileList | null) => {
     if (!list?.length) return;
     const files = [...list];
-    files.filter((f) => /\.mp4$/i.test(f.name)).forEach(rememberVideo);
+    files.filter((f) => /\.(mp4|insv)$/i.test(f.name)).forEach(rememberVideo);
     setErrors([]); setTracks([]); setChosen(null);
     setBusy("Reading files…");
     const r = await importFiles(files, setBusy);
@@ -55,6 +55,7 @@ export default function Import() {
             <p>Already recorded your ride? Bring it in and see where you're gaining and losing time.</p>
             <ul className="space-y-1.5 text-sm text-muted">
               <li><strong className="text-ink">GoPro</strong> (HERO5–11, HERO13, MAX): select the .MP4 files. Long rides are split into chapters, so select them all. GPS must be on in the camera. The HERO12 has no GPS.</li>
+              <li><strong className="text-ink">Insta360</strong> (X-series, ONE RS, Ace Pro, GO): select the .insv or .mp4 files straight off the camera. GPS is only recorded if the camera was connected to the Insta360 app or GPS remote while filming. 360° footage gives you the track analysis but can't be played back here.</li>
               <li><strong className="text-ink">Garmin</strong>: Garmin Connect → activity → ⚙ → Export Original (.zip) or Export to GPX/TCX.</li>
               <li><strong className="text-ink">Strava</strong>: activity → ⋯ → Export GPX.</li>
               <li><strong className="text-ink">Apple Watch</strong>: export the workout as GPX with an app such as HealthFit or RunGap.</li>
@@ -64,7 +65,7 @@ export default function Import() {
           <label htmlFor={inputId} className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-plate/60 bg-plate/5 p-6 text-center">
             <Icon name="download" className="size-8 text-plate" />
             <span className="font-display text-2xl font-extrabold uppercase">Choose files</span>
-            <span className="text-sm text-muted">GoPro .MP4 · .gpx · .fit · .tcx · Garmin .zip</span>
+            <span className="text-sm text-muted">GoPro / Insta360 video · .gpx · .fit · .tcx · Garmin .zip</span>
           </label>
           <input id={inputId} type="file" multiple accept={ACCEPT} className="sr-only" onChange={(e) => void onFiles(e.target.files)} />
         </>

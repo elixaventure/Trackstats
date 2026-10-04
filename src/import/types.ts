@@ -1,12 +1,14 @@
 import type { GpsPoint } from "@/domain/types";
 
-export type ImportKind = "gopro" | "gpx" | "fit" | "tcx";
+export type ImportKind = "gopro" | "insta360" | "gpx" | "fit" | "tcx";
 
 export interface ImportedVideo {
   fileName: string;
   /** Epoch ms of the video's first frame, derived from GPS time. */
   startAt: number;
   durationMs: number;
+  /** True when the start time is estimated rather than read from the camera clock. */
+  approxSync?: boolean;
 }
 
 /** A GPS trace read from a file, before it becomes a session. */
@@ -23,6 +25,7 @@ export interface ImportedTrack {
 
 export const KIND_LABEL: Record<ImportKind, string> = {
   gopro: "GoPro video",
+  insta360: "Insta360 video",
   gpx: "GPX (Strava, Apple Watch, Garmin…)",
   fit: "Garmin FIT",
   tcx: "Garmin TCX",

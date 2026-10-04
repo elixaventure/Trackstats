@@ -41,11 +41,13 @@ Other commands:
 | --- | --- | --- |
 | GoPro HERO5–11, HERO13, MAX, Fusion | The `.MP4` files (select every chapter of a long recording). GPS must be on in the camera. | 10–18 fixes/s: separates corners |
 | GoPro HERO12 | **Not supported: the HERO12 has no GPS chip.** The app says so. | — |
+| Insta360 (X-series, ONE RS, Ace Pro, GO) | The `.insv`/`.mp4` files straight off the camera. **GPS exists only if the camera was paired with the Insta360 app or GPS remote while filming.** The app says so when it's missing. | Depends on the phone/remote |
 | Garmin | Garmin Connect "Export Original" `.zip` (contains `.fit`), or `.fit`/`.gpx`/`.tcx` | ~1 fix/s |
 | Strava | Activity → Export GPX | ~1 fix/s |
 | Apple Watch | A GPX export from an app such as HealthFit or RunGap | ~1 fix/s |
 
 How it works:
+- Insta360's GPS format is undocumented. The reader follows the open-source Gyroflow `telemetry-parser`, and is tested on synthetic files only until we have a real recording. 360° `.insv` footage gives the track analysis but can't be played back in a browser. Ordinary `.mp4` playback is offered with approximate sync and ±1 s / ±0.2 s nudge buttons.
 - GoPro videos are read in place on the device. Only the telemetry bytes are read; multi-GB files are never loaded into memory, and footage is never uploaded.
 - GoPro video can be played back with a dot moving on the coloured map. In a later visit the rider re-selects the file, because browsers can't keep access to local files between visits.
 - If no route matches, "Create a route from this ride" picks out one lap for the rider to trim and save.
@@ -80,7 +82,7 @@ src/
   session/     RideEngine: runs a ride on-device (events → laps, GPS, gates, crash recovery).
   data/        Local-first store (IndexedDB), actions, selectors, demo-data generator.
   sync/        Outbox queue + Supabase sync engine + model↔row mapping.
-  import/      GoPro (MP4 + GPMF telemetry), GPX, TCX, FIT and Garmin .zip readers; route matching; lap detection.
+  import/      GoPro (MP4 + GPMF telemetry), Insta360 (file trailer), GPX, TCX, FIT and Garmin .zip readers; route matching; lap detection.
   components/  UI building blocks, map (MapLibre, lazy), charts (Recharts), live-ride widgets.
   pages/       One file per screen.
 supabase/migrations/  Postgres schema + Row Level Security.
