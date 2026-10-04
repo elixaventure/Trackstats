@@ -60,6 +60,8 @@ alter table public.conditions enable row level security;
 alter table public.rider_profiles enable row level security;
 alter table public.bikes enable row level security;
 alter table public.groups enable row level security;
+alter table public.service_tasks enable row level security;
+alter table public.service_records enable row level security;
 alter table public.group_members enable row level security;
 alter table public.transponders enable row level security;
 alter table public.transponder_assignments enable row level security;
@@ -85,6 +87,14 @@ create policy "riders delete own" on public.rider_profiles for delete using (own
 -- Bikes
 create policy "bikes read" on public.bikes for select using (public.can_view_rider(rider_id));
 create policy "bikes write own" on public.bikes for all using (public.owns_rider(rider_id)) with check (public.owns_rider(rider_id));
+
+-- Servicing: private to the bike's owner (shared only by exporting the history).
+create or replace function public.owns_bike(bid uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from bikes b where b.id = bid and public.owns_rider(b.rider_id));
+$$;
+create policy "service tasks own" on public.service_tasks for all using (public.owns_bike(bike_id)) with check (public.owns_bike(bike_id));
+create policy "service records own" on public.service_records for all using (public.owns_bike(bike_id)) with check (public.owns_bike(bike_id));
 
 -- Groups
 create policy "groups read members" on public.groups for select using (public.in_group(id));

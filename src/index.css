@@ -32,3 +32,8 @@
 @utility safe-top { padding-top: env(safe-area-inset-top, 0px); }
 
 .maplibregl-ctrl-attrib { font-size: 10px; }
+
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  @page { margin: 14mm; }
+}

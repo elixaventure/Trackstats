@@ -18,8 +18,9 @@ export default function BikeEdit() {
   const rider = activeRider(db)!;
   const existing = id === "new" ? null : db.bikes[id];
   const [b, setB] = useState<Bike>(() => existing ?? {
-    id: uuid(), riderId: rider.id, manufacturer: "", model: "", capacity: "", bikeClass: "", year: null, nickname: null, imageDataUrl: null, archived: false,
+    id: uuid(), riderId: rider.id, manufacturer: "", model: "", capacity: "", bikeClass: "", year: null, nickname: null, imageDataUrl: null, archived: false, startHours: null,
   });
+  const [startHours, setStartHours] = useState(existing?.startHours != null ? String(existing.startHours) : "");
   const [error, setError] = useState<string | null>(null);
   if (id !== "new" && !existing) return <EmptyState title="Bike not found" action={<LinkButton to="/profile">Profile</LinkButton>} />;
   const set = <K extends keyof Bike>(k: K, v: Bike[K]) => setB({ ...b, [k]: v });
@@ -27,7 +28,9 @@ export default function BikeEdit() {
 
   const save = () => {
     if (!b.manufacturer.trim() || !b.model.trim()) return setError("Manufacturer and model are required.");
-    saveBike({ ...b, manufacturer: b.manufacturer.trim(), model: b.model.trim() });
+    const hrs = startHours.trim() ? Number(startHours) : null;
+    if (hrs != null && !(hrs >= 0 && hrs < 10000)) return setError("Hours on the bike should be a number, e.g. 42.5.");
+    saveBike({ ...b, manufacturer: b.manufacturer.trim(), model: b.model.trim(), startHours: hrs });
     navigate("/profile");
   };
 
@@ -43,6 +46,8 @@ export default function BikeEdit() {
         <TextField label="Year" inputMode="numeric" value={b.year ?? ""} onChange={(e) => set("year", e.target.value ? Number(e.target.value.replace(/\D/g, "").slice(0, 4)) : null)} />
         <TextField label="Nickname" value={b.nickname ?? ""} onChange={(e) => set("nickname", e.target.value || null)} />
       </div>
+      <TextField label="Hours on the bike now" inputMode="decimal" value={startHours} onChange={(e) => setStartHours(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0 for a new bike" />
+      <p className="-mt-2 text-sm text-muted">From the hour meter, if it has one. Rides recorded in TrackStats are added on top for the service schedule.</p>
       {error && <p role="alert" className="text-slower">{error}</p>}
       <Button variant="primary" size="lg" className="w-full" onClick={save}>Save bike</Button>
       {existing && owner && (

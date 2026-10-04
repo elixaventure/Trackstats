@@ -19,6 +19,8 @@ const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const Achievements = lazy(() => import("./pages/Achievements"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Garage = lazy(() => import("./pages/Garage"));
+const BikeService = lazy(() => import("./pages/BikeService"));
+const ServiceHistoryPrint = lazy(() => import("./pages/ServiceHistoryPrint"));
 const RiderEdit = lazy(() => import("./pages/RiderEdit"));
 const BikeEdit = lazy(() => import("./pages/BikeEdit"));
 const Transponders = lazy(() => import("./pages/Transponders"));
@@ -46,6 +48,7 @@ const router = createBrowserRouter([
       { path: "achievements", element: s(<Achievements />) },
       { path: "profile", element: s(<Profile />) },
       { path: "garage", element: s(<Garage />) },
+      { path: "garage/:bikeId", element: s(<BikeService />) },
       { path: "profile/rider/:id", element: s(<RiderEdit />) },
       { path: "profile/bikes/:id", element: s(<BikeEdit />) },
       { path: "transponders", element: s(<Transponders />) },
@@ -57,6 +60,8 @@ const router = createBrowserRouter([
   },
   // Live ride is full-screen: no navigation chrome to mis-tap with gloves.
   { path: "ride/live", element: s(<LiveRide />) },
+  // Printable service history: plain page without app navigation.
+  { path: "garage/:bikeId/history", element: s(<ServiceHistoryPrint />) },
 ], {
   // "/" normally; "/Bacup-mx-track-" when hosted on GitHub Pages.
   basename: import.meta.env.BASE_URL.replace(/\/$/, "") || "/",

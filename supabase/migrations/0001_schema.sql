@@ -43,9 +43,37 @@ create table public.bikes (
   year int check (year between 1950 and 2100),
   nickname text,
   image_path text,
-  archived boolean not null default false
+  archived boolean not null default false,
+  start_hours numeric                   -- hours already on the bike when added
 );
 create index on public.bikes (rider_id);
+
+-- Servicing ---------------------------------------------------------------------
+create table public.service_tasks (
+  id uuid primary key,
+  bike_id uuid not null references public.bikes (id) on delete cascade,
+  name text not null check (length(name) between 1 and 80),
+  interval_hours numeric check (interval_hours > 0),
+  interval_days int check (interval_days > 0),
+  sort_order int not null default 0
+);
+create index on public.service_tasks (bike_id);
+
+-- Services and hour-meter readings. created_at is when it was entered: entries
+-- made long after the work are shown as "added later" in the service history.
+create table public.service_records (
+  id uuid primary key,
+  bike_id uuid not null references public.bikes (id) on delete cascade,
+  kind text not null check (kind in ('service', 'reading')),
+  performed_at timestamptz not null,
+  hours numeric not null check (hours >= 0),
+  task_ids uuid[] not null default '{}',
+  notes text not null default '',
+  cost_pence int check (cost_pence >= 0),
+  done_by text not null default '',
+  created_at timestamptz not null default now()
+);
+create index on public.service_records (bike_id, performed_at desc);
 
 -- Groups (family / team / friends) -----------------------------------------
 create table public.groups (

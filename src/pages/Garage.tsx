@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { RiderSwitcher } from "@/components/RiderSwitcher";
 import { Segmented } from "@/components/Segmented";
 import { Stat } from "@/components/Stat";
+import { ServiceSummary } from "@/components/service/ServiceSummary";
 import { EmptyState } from "@/components/States";
 import { activeRider, riderBikes, riderSessions, visibleRoutes } from "@/data/selectors";
 import { bikeStats, compareBikes, lapCounter, routesWithSeveralBikes, type BikeComparison } from "@/domain/garage";
@@ -51,8 +52,9 @@ export default function Garage() {
               <div className="grid grid-cols-3 gap-3">
                 <Stat label="Rides" value={s.sessions} />
                 <Stat label="Laps" value={s.laps} />
-                <Stat label="Hours" value={(s.ridingMs / 3600000).toFixed(1)} sub={s.lastRiddenAt ? formatRelativeDays(s.lastRiddenAt) : "Not ridden yet"} />
+                <Stat label="Ride time" value={`${(s.ridingMs / 3600000).toFixed(1)} h`} sub={s.lastRiddenAt ? formatRelativeDays(s.lastRiddenAt) : "Not ridden yet"} />
               </div>
+              <ServiceSummary bikeId={s.bike.id} />
               {s.bests.length > 0 && (
                 <ul className="divide-y divide-line border-t border-line pt-1">
                   {s.bests.map((b) => (
@@ -70,7 +72,7 @@ export default function Garage() {
 
       {bikes.length > 1 && <WhichBike routes={shared} />}
       {bikes.length > 0 && (
-        <p className="text-xs text-muted">Hours are time out on the bike in recorded sessions: useful for oil changes and top-end intervals, but not a replacement for an hour meter.</p>
+        <p className="text-xs text-muted">Ride time counts recorded sessions on each bike. Engine hours for servicing also use your hour-meter readings: open a bike's Service page to log work and readings.</p>
       )}
     </div>
   );

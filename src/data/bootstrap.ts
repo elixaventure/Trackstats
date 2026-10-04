@@ -26,7 +26,7 @@ export function emptyState(userId: string, email: string | null): DbState {
     activeRiderId: rider.id,
     riders: { [rider.id]: rider },
     bikes: {}, groups: {}, groupMembers: {}, transponders: {}, assignments: {}, routes: {}, sessions: {}, laps: {},
-    timingEvents: {}, leaderboard: {}, trackChanges: {},
+    timingEvents: {}, leaderboard: {}, trackChanges: {}, serviceTasks: {}, serviceRecords: {},
     settings: { simulateGps: false, simSpeed: 1, demoMode: false },
   };
 }
@@ -39,7 +39,7 @@ export async function bootstrap(): Promise<void> {
   // Devices still on sample data get the latest sample data; real accounts are never touched.
   const staleDemo = usable && existing.settings.demoMode && existing.settings.demoVersion !== DEMO_VERSION;
   // Older saved data may predate newer tables.
-  if (usable && !staleDemo) { store.init({ ...existing, trackChanges: existing.trackChanges ?? {} }); return; }
+  if (usable && !staleDemo) { store.init({ ...existing, trackChanges: existing.trackChanges ?? {}, serviceTasks: existing.serviceTasks ?? {}, serviceRecords: existing.serviceRecords ?? {} }); return; }
   if (staleDemo) await clearAll();
   store.init(await seedDemo());
 }

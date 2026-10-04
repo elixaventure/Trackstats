@@ -46,6 +46,36 @@ export interface Bike {
   nickname: string | null;
   imageDataUrl: string | null;
   archived: boolean;
+  /** Hours already on the bike when it was added (e.g. bought used). */
+  startHours?: number | null;
+}
+
+/** One job on a bike's service schedule, e.g. "Engine oil & filter every 10 h". */
+export interface ServiceTask {
+  id: Uuid;
+  bikeId: Uuid;
+  name: string;
+  intervalHours: number | null;
+  intervalDays: number | null;
+  sortOrder: number;
+}
+
+/** A service (jobs done) or an hour-meter reading, in the bike's history. */
+export interface ServiceRecord {
+  id: Uuid;
+  bikeId: Uuid;
+  kind: "service" | "reading";
+  /** When the work was done / the meter was read. */
+  performedAt: EpochMs;
+  /** Engine hours at that moment. */
+  hours: number;
+  taskIds: Uuid[];
+  notes: string;
+  costPence: number | null;
+  /** "Me", or the shop/mechanic's name. */
+  doneBy: string;
+  /** When it was entered in the app. Entries logged long after the work are flagged. */
+  createdAt: EpochMs;
 }
 
 export interface Group {

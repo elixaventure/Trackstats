@@ -15,11 +15,13 @@ export const TABLES: Record<EntityTable, string> = {
   laps: "laps",
   leaderboard: "leaderboard_entries",
   trackChanges: "track_changes",
+  serviceTasks: "service_tasks",
+  serviceRecords: "service_records",
 };
 
 /** Parents before children so foreign keys are satisfied. */
 export const PUSH_ORDER: EntityTable[] = [
-  "riders", "bikes", "groups", "groupMembers", "transponders", "assignments", "routes", "trackChanges", "sessions", "timingEvents", "laps",
+  "riders", "bikes", "serviceTasks", "serviceRecords", "groups", "groupMembers", "transponders", "assignments", "routes", "trackChanges", "sessions", "timingEvents", "laps",
 ];
 
 // Never pushed: images go to Storage (not yet wired), demo flag is local-only, polyline/sectors have their own tables.

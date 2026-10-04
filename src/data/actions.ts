@@ -1,5 +1,6 @@
 import { uuid } from "@/lib/id";
-import type { Bike, Group, GroupMember, RiderProfile, Route, TrackChange, Transponder } from "@/domain/types";
+import type { Bike, Group, GroupMember, RiderProfile, Route, ServiceRecord, ServiceTask, TrackChange, Transponder } from "@/domain/types";
+import { defaultSchedule } from "@/domain/service";
 import { getTimingProvider } from "@/timing";
 import type { DbState, Settings } from "./db";
 import { deleteGps } from "./persist";
@@ -28,6 +29,7 @@ export function addManagedRider(name: string): RiderProfile {
 
 export function saveBike(b: Bike) {
   store.upsert("bikes", [b]);
+  ensureSchedule(b);
   const rider = s().riders[b.riderId];
   if (rider && !rider.defaultBikeId) saveRider({ ...rider, defaultBikeId: b.id });
 }
@@ -121,3 +123,20 @@ export const removeTrackChange = (id: string) => store.remove("trackChanges", [i
 export function canManageChange(st: DbState, c: TrackChange) {
   return c.reportedByUserId === st.user.id || st.routes[c.routeId]?.createdByUserId === st.user.id;
 }
+
+/** Give a bike the default service schedule if it has none yet. */
+export function ensureSchedule(bike: Bike) {
+  const has = Object.values(s().serviceTasks).some((t) => t.bikeId === bike.id);
+  if (has) return;
+  store.upsert("serviceTasks", defaultSchedule(bike).map((t) => ({ id: uuid(), bikeId: bike.id, ...t })));
+}
+
+export function saveServiceTask(t: ServiceTask) { store.upsert("serviceTasks", [t]); }
+export const removeServiceTask = (id: string) => store.remove("serviceTasks", [id]);
+
+export function logServiceRecord(r: Omit<ServiceRecord, "id" | "createdAt">): ServiceRecord {
+  const rec: ServiceRecord = { ...r, id: uuid(), createdAt: Date.now() };
+  store.upsert("serviceRecords", [rec]);
+  return rec;
+}
+export const removeServiceRecord = (id: string) => store.remove("serviceRecords", [id]);

@@ -70,6 +70,16 @@ Each track has **Track updates**: riders and the track itself post what's change
 - Hazards stay up until someone marks them cleared; other reports drop off after 30 days.
 - With accounts on, reports sync to every rider (`track_changes` table; RLS: anyone can read reports on routes they can see; reporters and the route owner can clear or delete).
 
+### Servicing and service history (Garage → bike → Service)
+
+Each bike has a **service schedule**: jobs with an interval in hours, months, or both, whichever comes first. New bikes get sensible defaults, different for 2-strokes and 4-strokes. They are only a starting point: edit them to match the owner's manual.
+
+- **Engine hours** = the latest hour-meter reading plus ride time recorded since. With no reading, it's the hours entered when the bike was added plus recorded rides. App ride time includes time in the pits and misses rides not recorded, so log a meter reading now and then.
+- **Log service**: date, hours, jobs done, who did it, cost and notes. **Hour meter** logs a reading on its own.
+- The Home screen and Garage show what's due or overdue.
+- **For selling** opens a printable service history (Print / Save as PDF), with costs optional. Every entry is stamped with when it was logged. Anything typed in more than 7 days after the work is marked **added later**, so buyers can see what was logged at the time and what was backfilled.
+- Synced via `service_tasks` / `service_records` (RLS: owner of the bike only).
+
 ### Trying the timing without hardware
 
 1. Start a ride with **One pod: start/finish**.

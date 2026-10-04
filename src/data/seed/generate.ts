@@ -13,6 +13,7 @@ import { gaussian, mulberry32 } from "./rng";
 import { demoRoutes, SECTOR_PROFILES } from "./routes";
 import { geometryFor, lapGps, sectorDurations } from "./traces";
 import { demoTrackChanges } from "./trackChanges";
+import { demoService } from "./service";
 
 type RouteKey = "bacup" | "woodland" | "sprint";
 interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; cond: TrackCondition; best: number; laps: number; tag: "personal" | "shared1" | "shared2" | null; outlier?: boolean; notes?: string }
@@ -20,7 +21,7 @@ interface Plan { rider: "joel" | "charlie"; route: RouteKey; daysAgo: number; co
 const DAY = 86400000;
 
 /** Bump when the sample data changes; devices still on demo data are refreshed automatically. */
-export const DEMO_VERSION = 5;
+export const DEMO_VERSION = 6;
 
 // Joel's Bacup bests (seconds) tell the product story: 2:16.84 → 2:08.42 in seven weeks.
 const PLANS: Plan[] = [
@@ -138,6 +139,7 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
     if (tag) tag.lastSeenAt = Math.max(tag.lastSeenAt ?? 0, endAt - 120000);
   });
 
+  const service = demoService({ yz250f: people.bikes.yz250f, tc125: people.bikes.tc125 }, sessions, now);
   const byId = <T extends { id: string }>(xs: T[]) => Object.fromEntries(xs.map((x) => [x.id, x]));
   return {
     state: {
@@ -156,6 +158,8 @@ export function generateDemo(userId: string, now = Date.now()): { state: DbState
       timingEvents: byId(events),
       leaderboard: byId(otherRiderEntries(routes, people.friends, now)),
       trackChanges: byId(demoTrackChanges(routes, trackUserId, people.friends, now)),
+      serviceTasks: byId(service.tasks),
+      serviceRecords: byId(service.records),
       settings: { simulateGps: false, simSpeed: 1, demoMode: true, demoVersion: DEMO_VERSION },
     },
     gps,

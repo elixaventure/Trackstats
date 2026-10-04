@@ -9,6 +9,7 @@ import { Plate } from "@/components/RiderBadge";
 import { RiderSwitcher } from "@/components/RiderSwitcher";
 import { SessionRow } from "@/components/SessionRow";
 import { Stat } from "@/components/Stat";
+import { ServiceDueAlert } from "@/components/service/ServiceDueAlert";
 import { EmptyState } from "@/components/States";
 import { activeRider, bikeLabel } from "@/data/selectors";
 import { useDb } from "@/hooks/useDb";
@@ -47,6 +48,8 @@ export default function Home() {
           <LinkButton to={`/profile/rider/${rider.id}`} variant="secondary">Set up profile</LinkButton>
         </Card>
       )}
+
+      <ServiceDueAlert db={db} riderId={rider.id} />
 
       <LinkButton to="/ride" variant="primary" size="xl" className="w-full">
         <Icon name="ride" className="size-8" /> Start ride
