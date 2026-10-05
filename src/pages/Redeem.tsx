@@ -33,7 +33,7 @@ export default function Redeem() {
       <div className="mx-auto max-w-md space-y-5">
         <PageHeader title="You're Pro" />
         <Card className="space-y-3 border-plate bg-plate/10">
-          <p className="font-display text-4xl font-black uppercase leading-none text-plate">{done.proMonths} months of Pro</p>
+          <p className="font-display text-4xl font-black uppercase leading-none text-plate">{done.proMonths === 1 ? "1 month" : `${done.proMonths} months`} of Pro</p>
           <p>Unlocked until <strong>{formatDate(done.proUntil, 0)}</strong>{from ? <>, courtesy of <strong>{from}</strong></> : null}.</p>
           <p className="text-sm text-muted">Pro features switch on as they launch. Lap timing stays free either way.</p>
         </Card>

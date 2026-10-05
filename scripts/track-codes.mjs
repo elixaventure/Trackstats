@@ -1,7 +1,7 @@
 // Make a batch of single-use Pro codes for one track, with printable QR cards.
 //
 //   npm run track-codes -- "Bacup MX"
-//   npm run track-codes -- "Bacup MX" --count 5 --months 12
+//   npm run track-codes -- "Bacup MX" --count 5 --months 1
 //
 // Writes to promo-private/<track>/ (git-ignored, because this repo is public):
 //   seed.sql   paste into the Supabase SQL Editor to make the codes live
@@ -27,11 +27,12 @@ const opt = (name, fallback) => {
 };
 const track = args.find((a, i) => !a.startsWith("--") && !args[i - 1]?.startsWith("--"));
 if (!track) {
-  console.error('Usage: npm run track-codes -- "Track Name" [--count 5] [--months 12]');
+  console.error('Usage: npm run track-codes -- "Track Name" [--count 5] [--months 1]');
   process.exit(1);
 }
 const count = Number(opt("count", 5));
-const months = Number(opt("months", 12));
+const months = Number(opt("months", 1));
+const monthsText = months === 1 ? "1 month" : `${months} months`;
 if (!(count >= 1 && count <= 200) || !(months >= 1 && months <= 120)) {
   console.error("--count must be 1-200 and --months 1-120.");
   process.exit(1);
@@ -50,7 +51,7 @@ const dir = path.resolve("promo-private", campaign);
 fs.mkdirSync(dir, { recursive: true });
 
 const sqlText = (s) => `'${s.replace(/'/g, "''")}'`;
-fs.writeFileSync(path.join(dir, "seed.sql"), `-- ${track}: ${count} single-use codes, ${months} months of Pro each.
+fs.writeFileSync(path.join(dir, "seed.sql"), `-- ${track}: ${count} single-use codes, ${monthsText} of Pro each.
 -- PRIVATE. Paste into the Supabase SQL Editor and press Run. Safe to run twice.
 insert into public.promo_codes (code, campaign, pro_months) values
 ${list.map((c) => `  (${sqlText(c)}, ${sqlText(campaign)}, ${months})`).join(",\n")}
@@ -61,7 +62,7 @@ select code, redeemed_at from public.promo_codes where campaign = ${sqlText(camp
 `);
 
 fs.writeFileSync(path.join(dir, "codes.txt"), `TrackStats × ${track}: ${count} test rider codes (PRIVATE)
-Each gives ${months} months of Pro. One use per code, one code per rider.
+Each gives ${monthsText} of Pro. One use per code, one code per rider.
 
 ${list.map((c, i) => `${String(i + 1).padStart(2, "0")}  ${c}  ${claimUrl(c)}`).join("\n")}
 `);
@@ -74,7 +75,7 @@ const cards = await Promise.all(list.map(async (c, i) => {
   return `<div class="card"><div class="l">
     <div class="brand">${logo}<span>TrackStats</span></div>
     <div class="x">× ${esc(track)} · ${pad(i + 1)} of ${pad(count)}</div>
-    <div class="big">Test rider<br><span>${months} months Pro free</span></div>
+    <div class="big">Test rider<br><span>${monthsText} Pro free</span></div>
     <div class="code">${c}</div>
     <div class="fine">Prototype lap timer. Scan, sign up, time your laps at ${esc(shortName)}, tell us what breaks. One use only.</div>
   </div><div class="qr">${qr}</div></div>`;
@@ -113,7 +114,7 @@ const fontsOk = await page.evaluate(() => document.fonts.check('900 19pt "Barlow
 await page.pdf({ path: path.join(dir, "cards.pdf"), format: "A4", printBackground: true });
 await browser.close();
 
-console.log(`${track}: ${count} codes, ${months} months each, campaign "${campaign}".`);
+console.log(`${track}: ${count} codes, ${monthsText} of Pro each, campaign "${campaign}".`);
 console.log(`Files in ${path.relative(process.cwd(), dir)}/: seed.sql, codes.txt, cards.pdf`);
 if (!fontsOk) console.log("Note: the card font didn't load, so the PDF uses Arial. Check your connection and run again.");
 console.log("Next: paste seed.sql into the Supabase SQL Editor and press Run.");
