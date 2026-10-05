@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { formatClock } from "@/domain/time";
+import { formatClock, formatSpeedMps } from "@/domain/time";
 import type { GpsPoint, ImportInfo } from "@/domain/types";
 import { recallVideo, rememberVideo } from "@/lib/videoFiles";
 
@@ -72,7 +72,7 @@ export function VideoSync({ videos, points, onPosition }: { videos: ImportInfo["
       {url ? (
         <>
           <video ref={video} src={url} controls playsInline className="w-full rounded-2xl bg-black" />
-          {now && <p className="font-mono text-sm text-muted">{formatClock(now.at * 1000)} · {now.speed != null ? `${Math.round(now.speed * 3.6)} km/h` : "—"}</p>}
+          {now && <p className="font-mono text-sm text-muted">{formatClock(now.at * 1000)} · {formatSpeedMps(now.speed)}</p>}
           {meta.approxSync && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted">Sync is approximate. If the dot is ahead or behind the footage, nudge it:</span>

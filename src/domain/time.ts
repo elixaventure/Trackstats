@@ -70,6 +70,12 @@ export function formatSpan(ms: number): string {
   return `${days} days`;
 }
 
+/** Speeds are shown in mph (UK riders); stored and computed in m/s or km/h. */
+export function formatSpeedKph(kph: number | null | undefined): string {
+  return kph == null ? "—" : `${Math.round(kph * 0.621371)} mph`;
+}
+export const formatSpeedMps = (mps: number | null | undefined) => formatSpeedKph(mps == null ? null : mps * 3.6);
+
 export function formatDistance(m: number | null | undefined): string {
   if (m == null) return "—";
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
