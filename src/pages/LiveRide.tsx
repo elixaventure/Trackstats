@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/Button";
 import { Delta } from "@/components/Delta";
@@ -31,6 +31,15 @@ export default function LiveRide() {
   const [who, setWho] = useState(0);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const gpsFailed = snap.gps.state === "denied" || snap.gps.state === "error";
+
+  // Coming back from the phone's Settings after allowing location: try again without a tap.
+  useEffect(() => {
+    if (!gpsFailed) return;
+    const onVisible = () => { if (document.visibilityState === "visible") void rideEngine.retryLocation(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [gpsFailed]);
 
   if (!snap.ride) return finishing ? null : <Navigate to="/ride" replace />;
   const ride = snap.ride;
@@ -69,7 +78,12 @@ export default function LiveRide() {
         {!online && <StatusChip icon="offline" tone="warn">Offline · saving locally</StatusChip>}
         {!wake && "wakeLock" in navigator && <StatusChip icon="bolt" tone="warn">Keep screen on</StatusChip>}
       </div>
-      {snap.gps.message && <p className="mb-2 rounded-xl bg-slower/10 p-3 text-sm text-slower">{snap.gps.message.replace(/\.?$/, ".")} {isGps ? "GPS timing can't run without location." : "Pod timing still works."}</p>}
+      {snap.gps.message && (
+        <div className="mb-2 flex flex-col gap-3 rounded-xl bg-slower/10 p-3 text-sm text-slower">
+          <p>{snap.gps.message.replace(/\.?$/, ".")} {isGps ? "GPS timing can't run without location." : "Pod timing still works."}</p>
+          <button type="button" onClick={() => void rideEngine.retryLocation()} className="min-h-11 self-start rounded-lg border border-slower px-4 font-semibold">Try location again</button>
+        </div>
+      )}
 
       {ride.participants.length > 1 && (
         <div role="tablist" className="mb-2 flex gap-2">

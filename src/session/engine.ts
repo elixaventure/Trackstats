@@ -119,10 +119,7 @@ class RideEngine {
     const simLine = route?.polyline ?? Object.values(st.routes)[0]?.polyline;
     this.location = createLocationProvider({ simulate: sim, simulateLine: simLine, speedFactor: st.settings.simSpeed, isLoop: route?.isLoop ?? true });
     this.snap = { ...this.snap, gps: { ...this.snap.gps, provider: this.location.label } };
-    await this.location.start((p) => this.onFix(p), (kind, message) => {
-      this.snap = { ...this.snap, gps: { ...this.snap.gps, state: kind === "denied" ? "denied" : "error", message } };
-      this.emit();
-    });
+    await this.startLocation();
     this.watchdog = setInterval(() => {
       const last = this.snap.gps.lastFixAt;
       if (last && Date.now() - last > 10000 && this.snap.gps.state !== "denied") {
@@ -130,6 +127,22 @@ class RideEngine {
         this.emit();
       }
     }, 3000);
+  }
+
+  private async startLocation() {
+    if (!this.location) return;
+    await this.location.start((p) => this.onFix(p), (kind, message) => {
+      this.snap = { ...this.snap, gps: { ...this.snap.gps, state: kind === "denied" ? "denied" : "error", message } };
+      this.emit();
+    });
+  }
+
+  /** Ask for location again, e.g. after the rider allows it in Settings. Keeps the ride going. */
+  async retryLocation() {
+    if (!this.location || !this.snap.ride) return;
+    this.snap = { ...this.snap, gps: { ...this.snap.gps, state: "searching", message: null } };
+    this.emit();
+    await this.startLocation();
   }
 
   private setupGates(route: Route | null, timing: TimingConfig) {
