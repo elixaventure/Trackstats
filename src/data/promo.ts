@@ -40,9 +40,12 @@ export async function fetchPro(): Promise<{ until: number; source: string | null
   return until > Date.now() ? { until, source: (data.source as string | null) ?? null } : null;
 }
 
-/** "promo:bacup-launch" → "Bacup MX". Campaign names are ours, so a small lookup is enough. */
+/** "promo:bacup-mx" → "Bacup MX". Each track's codes are a campaign named after the track. */
 export function campaignLabel(campaign: string | null | undefined): string | null {
   const c = (campaign ?? "").replace(/^promo:/, "");
+  if (!c) return null;
   if (c.startsWith("bacup")) return "Bacup MX";
-  return c ? c.replace(/-/g, " ") : null;
+  return c.split("-").filter(Boolean)
+    .map((w) => (w === "mx" ? "MX" : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
 }

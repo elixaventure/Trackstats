@@ -196,12 +196,12 @@ One-time setup, about 10 minutes:
 
 ### Promo codes
 
-`0003_promo_codes.sql` adds single-use codes that give months of Pro. A batch belongs to a campaign (for example 10 codes for Bacup MX). Each code works once, each rider can claim one code per campaign, and when a batch is used up there are no more. Codes are claimed atomically on the server, so two riders can't win the same code. Riders can't list unused codes.
+`0003_promo_codes.sql` adds single-use codes that give months of Pro. Each track gets its own batch (5 codes by default). Each code works once, a rider can claim one code per track, and when a track's codes are used up there are no more. Codes are claimed atomically on the server, so two riders can't win the same code. Riders can't list unused codes.
 
-- **The codes are not in this repo.** The repo is public. Keep each batch's seed SQL private and load it by pasting it into the SQL Editor.
-- **Claiming.** A rider claims a code at `/redeem?code=CODE` (the QR on the card), or at Profile → Settings → Claim a code. If they aren't signed in, the code is kept while they create an account.
-- **A new batch.** Insert rows with your own random codes: `insert into public.promo_codes (code, campaign, pro_months) values ('SHOP-AB12-CD34', 'shop-launch', 6), …;`. Codes must be uppercase letters, digits and dashes.
-- **What's left.** `select code, redeemed_at from promo_codes where campaign = 'bacup-launch';`, or call `promo_remaining('bacup-launch')`.
+- **Make a track's codes:** `npm run track-codes -- "Bacup MX"` (options: `--count 5 --months 12`). It writes `promo-private/<track>/` with `seed.sql`, `codes.txt` and `cards.pdf` (printable QR cards). That folder is git-ignored. **Never commit codes:** this repo is public.
+- **Make them live:** paste `seed.sql` into the Supabase SQL Editor and press Run.
+- **Claiming:** a rider scans the card (`/redeem?code=CODE`) or types it at Profile → Settings → Claim a code. If they aren't signed in, the code is kept while they create an account.
+- **What's left:** `select code, redeemed_at from promo_codes where campaign = 'bacup-mx';`, or call `promo_remaining('bacup-mx')`.
 
 ### How it was tested
 
