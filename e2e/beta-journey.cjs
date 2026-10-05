@@ -317,9 +317,13 @@ async function holdFinish(page) {
 
     const C = await phone(browser);
     const { page: c } = C;
-    await step("another rider sees the public track but none of Joel's private data", async () => {
-      await go(c, "sign-in");
-      await c.getByRole("radio", { name: "Create account" }).click();
+    await step("a new rider scans a promo QR card, signs up and gets 12 months of Pro", async () => {
+      await sql(`insert into promo_codes (code, campaign, pro_months) values ('BACUP-TEST-0001', 'bacup-launch', 12), ('BACUP-TEST-0002', 'bacup-launch', 12)`);
+      await go(c, "redeem?code=bacup-test-0001");
+      await c.getByText("You've got a code").waitFor();
+      await c.getByText("BACUP-TEST-0001").waitFor();
+      await shot(c, "12-promo-signed-out", false);
+      await c.getByRole("link", { name: "Create account and claim" }).click();
       await c.getByLabel("Email").fill("charlie.test@example.com");
       await c.getByLabel("Password").fill("Charlie-77-test");
       await c.getByRole("button", { name: "Create account" }).click();
@@ -327,7 +331,25 @@ async function holdFinish(page) {
       await fetch(`${API}/__test/confirm`, { method: "POST", body: JSON.stringify({ email: "charlie.test@example.com" }) });
       await c.getByRole("radio", { name: "Sign in" }).click();
       await c.getByRole("button", { name: "Sign in" }).click();
-      await c.waitForURL(/\/Trackstats\/?$/);
+      await c.waitForURL(/redeem/);
+      await c.getByRole("button", { name: "Claim code" }).click();
+      await c.getByText("12 months of Pro").waitFor();
+      await c.getByText("Bacup MX").first().waitFor();
+      await shot(c, "13-promo-claimed", false);
+      const left = await one(`select count(*)::int n from promo_codes where redeemed_by is null`);
+      expect(left.n === 1, `${left.n} codes left, expected 1`);
+    });
+
+    await step("a used code can't be claimed again by another rider", async () => {
+      await go(b, "redeem?code=BACUP-TEST-0001");
+      await b.getByRole("button", { name: "Claim code" }).click();
+      await b.getByText("already been used").waitFor();
+      await go(b, "settings");
+      await b.getByText("You're on the free plan").waitFor();
+    });
+
+    await step("another rider sees the public track but none of Joel's private data", async () => {
+      await c.waitForTimeout(200);
       await go(c, "routes");
       await c.getByText("Test Oval").first().waitFor();
       const text = await (async () => { await go(c, "garage"); return c.locator("main").innerText(); })();
@@ -337,7 +359,7 @@ async function holdFinish(page) {
 
     await step("server: nobody else's rows were touched, and no unexpected errors", async () => {
       const stats = await (await fetch(`${API}/__test/stats`)).json();
-      const unexpected = stats.errors.filter((e) => !(e.path.startsWith("/auth/v1/token") && e.status === 400));
+      const unexpected = stats.errors.filter((e) => !(e.path.startsWith("/auth/v1/token") && e.status === 400) && !(e.path.startsWith("/rest/v1/rpc/redeem_promo") && e.code === "P0001"));
       expect(!unexpected.length, `server errors: ${JSON.stringify(unexpected.slice(0, 3))}`);
       const pageErrors = [...A.errors.map((e) => `A ${e}`), ...B.errors.map((e) => `B ${e}`), ...C.errors.map((e) => `C ${e}`)];
       expect(!pageErrors.length, `page errors: ${[...new Set(pageErrors)].slice(0, 5).join(" | ")}`);

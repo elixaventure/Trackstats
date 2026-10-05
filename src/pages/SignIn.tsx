@@ -8,6 +8,7 @@ import { Segmented } from "@/components/Segmented";
 import { ErrorNote } from "@/components/States";
 import { cloudEnabled } from "@/config/env";
 import { switchToAccount } from "@/data/bootstrap";
+import { getPendingCode } from "@/data/promo";
 import { sync } from "@/sync/engine";
 import { getSupabase } from "@/sync/supabase";
 
@@ -36,7 +37,8 @@ export default function SignIn() {
       if (!res.data.session) { setInfo("Check your email to confirm your account, then sign in."); return; }
       await switchToAccount(res.data.session.user.id, res.data.session.user.email ?? null);
       void sync.flush();
-      navigate("/", { replace: true });
+      // Came from a promo QR card: claim the code now they're signed in.
+      navigate(getPendingCode() ? "/redeem" : "/", { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

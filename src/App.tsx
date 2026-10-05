@@ -28,6 +28,7 @@ const Groups = lazy(() => import("./pages/Groups"));
 const Settings = lazy(() => import("./pages/Settings"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const Welcome = lazy(() => import("./pages/Welcome"));
+const Redeem = lazy(() => import("./pages/Redeem"));
 
 const s = (el: ReactNode) => <Suspense fallback={<Loading />}>{el}</Suspense>;
 
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
       { path: "groups", element: s(<Groups />) },
       { path: "settings", element: s(<Settings />) },
       { path: "sign-in", element: s(<SignIn />) },
+      { path: "redeem", element: s(<Redeem />) },
       { path: "*", element: <NotFound /> },
     ],
   },

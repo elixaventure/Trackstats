@@ -11,6 +11,7 @@ import { SessionRow } from "@/components/SessionRow";
 import { Stat } from "@/components/Stat";
 import { ServiceDueAlert } from "@/components/service/ServiceDueAlert";
 import { EmptyState } from "@/components/States";
+import { getPendingCode } from "@/data/promo";
 import { activeRider, bikeLabel } from "@/data/selectors";
 import { useDb } from "@/hooks/useDb";
 import { useRiderStats } from "@/hooks/useRiderStats";
@@ -41,6 +42,13 @@ export default function Home() {
           </p>
         </div>
       </header>
+
+      {!db.settings.demoMode && getPendingCode() && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-plate/50">
+          <p>You have a code to claim: <span className="font-mono font-bold">{getPendingCode()}</span></p>
+          <LinkButton to="/redeem" variant="primary">Claim it</LinkButton>
+        </Card>
+      )}
 
       {needsProfile && (
         <Card className="border-plate/50">

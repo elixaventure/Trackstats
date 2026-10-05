@@ -56,7 +56,7 @@ export function AppShell() {
   const { pathname } = useLocation();
   // With accounts on, a new phone starts at the welcome screen (sign up / sign in)
   // rather than dropping testers into demo data they might ride in by mistake.
-  if (cloudEnabled && db.settings.demoMode && !db.settings.exploringDemo && pathname !== "/sign-in") return <Navigate to="/welcome" replace />;
+  if (cloudEnabled && db.settings.demoMode && !db.settings.exploringDemo && pathname !== "/sign-in" && pathname !== "/redeem") return <Navigate to="/welcome" replace />;
   return (
     <div className="min-h-dvh md:pl-64">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-line bg-surface p-4 md:flex">

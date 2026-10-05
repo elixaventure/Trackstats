@@ -8,12 +8,13 @@ import { Segmented } from "@/components/Segmented";
 import { cloudEnabled } from "@/config/env";
 import { updateSettings } from "@/data/actions";
 import { resetToDemo } from "@/data/bootstrap";
-import { formatDateTime } from "@/domain/time";
+import { formatDate, formatDateTime } from "@/domain/time";
 import { useDb } from "@/hooks/useDb";
 import { useSync } from "@/hooks/useSync";
 import { useRide } from "@/session/useRide";
 import { sync } from "@/sync/engine";
 import { getSupabase } from "@/sync/supabase";
+import { campaignLabel, fetchPro } from "@/data/promo";
 
 const SYNC_TEXT = { disabled: "Off", signed_out: "Signed out", offline: "Offline — will retry", idle: "Up to date", syncing: "Syncing…", error: "Error — retrying" } as const;
 
@@ -64,6 +65,8 @@ export default function Settings() {
         )}
       </Card>
 
+      {cloudEnabled && !db.settings.demoMode && <ProCard />}
+
       <Card className="space-y-3">
         <SectionTitle>Offline storage</SectionTitle>
         <p className="text-sm text-muted">Rides record to this phone first and never need signal. Ask the browser to protect that storage from automatic clean-up:</p>
@@ -96,5 +99,20 @@ export default function Settings() {
         </Card>
       )}
     </div>
+  );
+}
+
+function ProCard() {
+  const [pro, setPro] = useState<{ until: number; source: string | null } | null | undefined>(undefined);
+  useEffect(() => { void fetchPro().then(setPro).catch(() => setPro(null)); }, []);
+  const from = campaignLabel(pro?.source);
+  return (
+    <Card className="space-y-3">
+      <SectionTitle>TrackStats Pro</SectionTitle>
+      {pro === undefined ? <p className="text-muted">Checking…</p>
+        : pro ? <p>Pro until <strong>{formatDate(pro.until, 0)}</strong>{from ? <> · from {from}</> : null}</p>
+        : <p className="text-muted">You're on the free plan. Lap timing, progress and your garage are free.</p>}
+      <LinkButton to="/redeem">Claim a code</LinkButton>
+    </Card>
   );
 }

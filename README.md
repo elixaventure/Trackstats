@@ -174,7 +174,7 @@ Without Supabase the app runs in demo mode: sample data, stored only on that pho
 One-time setup, about 10 minutes:
 
 1. **Create a project** at supabase.com (the free tier is fine for a beta). Pick a region near the riders, e.g. London (eu-west-2).
-2. **Create the database.** Open the SQL Editor and run `supabase/migrations/0001_schema.sql`, then `0002_rls.sql`. Paste each file's whole contents and press Run.
+2. **Create the database.** Open the SQL Editor and run `supabase/migrations/0001_schema.sql`, then `0002_rls.sql`, then `0003_promo_codes.sql`. Paste each file's whole contents and press Run.
 3. **Auth settings.** Open Authentication → URL Configuration:
    - Site URL: `https://elixaventure.github.io/Trackstats/`
    - Redirect URLs: add `https://elixaventure.github.io/Trackstats/**`
@@ -194,6 +194,15 @@ One-time setup, about 10 minutes:
 
 **Never** put the `service_role` key in a `VITE_` variable or a GitHub variable: it would ship to every phone. Server-side jobs (billing webhooks, leaderboard materialisation, achievement notifications) belong in Supabase Edge Functions, where the service role key lives as a function secret.
 
+### Promo codes
+
+`0003_promo_codes.sql` adds single-use codes that give months of Pro. A batch belongs to a campaign (for example 10 codes for Bacup MX). Each code works once, each rider can claim one code per campaign, and when a batch is used up there are no more. Codes are claimed atomically on the server, so two riders can't win the same code. Riders can't list unused codes.
+
+- **The codes are not in this repo.** The repo is public. Keep each batch's seed SQL private and load it by pasting it into the SQL Editor.
+- **Claiming.** A rider claims a code at `/redeem?code=CODE` (the QR on the card), or at Profile → Settings → Claim a code. If they aren't signed in, the code is kept while they create an account.
+- **A new batch.** Insert rows with your own random codes: `insert into public.promo_codes (code, campaign, pro_months) values ('SHOP-AB12-CD34', 'shop-launch', 6), …;`. Codes must be uppercase letters, digits and dashes.
+- **What's left.** `select code, redeemed_at from promo_codes where campaign = 'bacup-launch';`, or call `promo_remaining('bacup-launch')`.
+
 ### How it was tested
 
 - `npm test` includes `src/sync/rls.test.ts`, which runs the migrations on real Postgres (PGlite) and checks Row Level Security. It uses upserts, exactly as the app saves.
@@ -204,7 +213,8 @@ One-time setup, about 10 minutes:
   - log something offline and check it syncs once back online;
   - reopen the app;
   - sign in on a second phone and get everything back, including lap analysis;
-  - create a second account, which sees the public track but none of the first rider's private data.
+  - create a second account, which sees the public track but none of the first rider's private data;
+  - scan a promo code link, sign up and claim 12 months of Pro, then check another rider can't reuse it.
 
   Screenshots go to `e2e/out/`. CI runs it on every push (the "End-to-end" workflow).
 - The stand-in is not Supabase itself. Once the real project exists, do one sign-up on a phone to confirm the email link and the first sync.

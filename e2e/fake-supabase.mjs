@@ -153,7 +153,20 @@ function whereSql(query, params) {
   return parts.length ? ` where ${parts.join(" and ")}` : "";
 }
 
+async function handleRpc(tx, fn, body) {
+  if (!/^[a-z_][a-z0-9_]*$/.test(fn)) throw restError(404, "PGRST202", `Could not find the function public.${fn}`);
+  const keys = Object.keys(body ?? {});
+  for (const k of keys) ident(k);
+  const args = keys.map((k, i) => `"${k}" => $${i + 1}`).join(", ");
+  const r = await tx.query(`select * from public.${fn}(${args})`, keys.map((k) => body[k]));
+  // Like PostgREST: a function returning a single value gives that value; a table gives rows.
+  const cols = r.fields.map((f) => f.name);
+  const body2 = cols.length === 1 && cols[0] === fn ? (r.rows[0]?.[fn] ?? null) : r.rows;
+  return { status: 200, body: body2 };
+}
+
 async function handleRest(tx, req, table, query, body) {
+  if (table.startsWith("rpc/")) return handleRpc(tx, table.slice(4), body);
   if (!columns.has(table)) throw restError(404, "PGRST205", `Could not find the table 'public.${table}' in the schema cache`);
   const cols = columns.get(table);
   const prefer = String(req.headers.prefer ?? "");
