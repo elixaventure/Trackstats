@@ -80,7 +80,7 @@ export const formatSpeedMps = (mps: number | null | undefined) => formatSpeedKph
 export function formatMiles(m: number | null | undefined): string {
   if (m == null) return "—";
   const mi = m / 1609.344;
-  return `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi`;
+  return `${mi < 9.95 ? mi.toFixed(1) : Math.round(mi)} mi`;
 }
 
 export function formatDistance(m: number | null | undefined): string {
