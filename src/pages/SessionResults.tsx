@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/States";
 import { activeAssignment, deleteSession, releaseTransponder } from "@/data/actions";
 import { bikeLabel, sessionLaps } from "@/data/selectors";
 import { consistencyScore } from "@/domain/stats";
-import { formatDateTime, formatDistance, formatDuration, formatLap, formatSpeedKph } from "@/domain/time";
+import { formatDateTime, formatDuration, formatLap, formatMiles, formatSpeedKph } from "@/domain/time";
 import { CONDITION_LABEL, RIDE_TYPE_LABEL, type TimingSource } from "@/domain/types";
 import { useDb } from "@/hooks/useDb";
 import { useGps } from "@/hooks/useGps";
@@ -102,7 +102,7 @@ export default function SessionResults() {
           <Card><Stat label="Duration" value={formatDuration(s.durationMs)} /></Card>
           <Card><Stat label="Consistency" value={s.consistencySdMs != null ? `±${(s.consistencySdMs / 1000).toFixed(2)}s` : "—"} sub={score != null ? `Score ${score}/100` : "Needs 2+ laps"} /></Card>
           <Card><Stat label="Previous PB" value={formatLap(s.previousPbMs)} sub={gain != null ? <Delta ms={gain} /> : s.previousPbMs != null && best != null ? <>Off by <Delta ms={best - s.previousPbMs} /></> : undefined} /></Card>
-          <Card><Stat label="Distance" value={formatDistance(s.distanceM)} /></Card>
+          <Card><Stat label="Distance" value={formatMiles(s.distanceM)} /></Card>
           <Card><Stat label="Top speed" value={formatSpeedKph(s.topSpeedKph)} sub={s.elevationGainM != null ? `${s.elevationGainM} m climbed` : undefined} /></Card>
         </div>
       ) : <p className="text-muted">This session hasn't finished.</p>}

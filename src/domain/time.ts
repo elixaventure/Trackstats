@@ -76,6 +76,13 @@ export function formatSpeedKph(kph: number | null | undefined): string {
 }
 export const formatSpeedMps = (mps: number | null | undefined) => formatSpeedKph(mps == null ? null : mps * 3.6);
 
+/** A ride's total distance, in miles (UK riders). Track lengths use formatDistance. */
+export function formatMiles(m: number | null | undefined): string {
+  if (m == null) return "—";
+  const mi = m / 1609.344;
+  return `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi`;
+}
+
 export function formatDistance(m: number | null | undefined): string {
   if (m == null) return "—";
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
